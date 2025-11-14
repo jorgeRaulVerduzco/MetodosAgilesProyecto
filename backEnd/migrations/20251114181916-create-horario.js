@@ -10,28 +10,36 @@ module.exports = {
         type: Sequelize.INTEGER
       },
       dia: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING,
+        allowNull: false
       },
       horaInicio: {
-        type: Sequelize.TIME
+        type: Sequelize.TIME,
+        allowNull: false
       },
       horaFin: {
-        type: Sequelize.TIME
+        type: Sequelize.TIME,
+        allowNull: false
       },
       periodo: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING,
+        allowNull: false
       },
       createdAt: {
         allowNull: false,
-        type: Sequelize.DATE
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
       },
       updatedAt: {
         allowNull: false,
-        type: Sequelize.DATE
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
       }
     });
   },
+
   async down(queryInterface, Sequelize) {
     await queryInterface.dropTable('Horarios');
   }
 };
+
