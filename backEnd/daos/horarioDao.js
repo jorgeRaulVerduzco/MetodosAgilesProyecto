@@ -1,44 +1,22 @@
-const Horario = require("../models/horario.js");
+const { Horario } = require('../models');
 
-class HorarioDao {
-  constructor() {}
-
-  async crear(datos) {
+class HorarioDAO {
+  
+  async crear(data) {
     try {
-      return await Horario.create(datos);
+      return await Horario.create(data);
     } catch (error) {
-      throw new Error(error);
+      throw error;
     }
   }
 
-  async obtenerHorarios() {
-    try {
-      return await Horario.findAll();
-    } catch (error) {
-      throw new Error(error);
-    }
-  }
-
-  async obtenerHorariosPorId(id) {
+  async obtenerPorId(id) {
     try {
       return await Horario.findByPk(id);
     } catch (error) {
-      throw new Error(error);
-    }
-  }
-
-  async eliminarHorario(id) {
-    try {
-      const horario = await Horario.findByPk(id);
-      if (horario === null) {
-        return "Ese horario, no existe";
-      }
-      await Horario.destroy();
-      return "horario eliminado con exito";
-    } catch (error) {
-      throw new Error(error);
+      throw error;
     }
   }
 }
 
-module.exports = new HorarioDao();
+module.exports = new HorarioDAO();

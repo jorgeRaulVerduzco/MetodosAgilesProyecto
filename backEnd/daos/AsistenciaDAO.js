@@ -1,12 +1,9 @@
-const { Asistencia, Alumno, Curso, Materia, Usuario } = require('../models');
+const { Asistencia, Curso, Materia, Salon } = require('../models');
 const { Op } = require('sequelize');
 
 class AsistenciaDAO {
   /**
-   * Crear una nueva asistencia
-   * HU03.1 - Registrar asistencia a clase
-   * @param {Object} data - Datos de la asistencia
-   * @returns {Object} Asistencia creada
+   * CREAR asistencia (HU03.1)
    */
   async crear(data) {
     try {
@@ -15,23 +12,17 @@ class AsistenciaDAO {
         estado: data.estado || 'presente',
         ubicacionLat: data.ubicacionLat,
         ubicacionLong: data.ubicacionLong,
-        validada: data.validada || true,
+        validada: data.validada !== undefined ? data.validada : true,
         alumnoId: data.alumnoId,
         cursoId: data.cursoId
       });
     } catch (error) {
-      console.error('Error en crear asistencia:', error);
       throw error;
     }
   }
 
   /**
-   * Verificar si ya existe una asistencia para hoy
-   * HU03.1 - Escenario 4: Registro duplicado
-   * @param {string} alumnoId - ID del alumno
-   * @param {number} cursoId - ID del curso
-   * @param {Date} fecha - Fecha a verificar (default: hoy)
-   * @returns {boolean}
+   * EXISTE asistencia hoy (HU03.1 - Escenario 4: registro duplicado)
    */
   async existeAsistenciaHoy(alumnoId, cursoId, fecha = new Date()) {
     try {
@@ -53,63 +44,12 @@ class AsistenciaDAO {
 
       return count > 0;
     } catch (error) {
-      console.error('Error en existeAsistenciaHoy:', error);
       throw error;
     }
   }
 
   /**
-   * Obtener asistencias de un alumno en un curso
-   * HU04.1 - Consultar historial de asistencias
-   * @param {string} alumnoId - ID del alumno
-   * @param {number} cursoId - ID del curso
-   * @returns {Array} Lista de asistencias
-   */
-  async obtenerPorAlumnoCurso(alumnoId, cursoId) {
-    try {
-      return await Asistencia.findAll({
-        where: { alumnoId, cursoId },
-        order: [['fechaHora', 'DESC']],
-        include: [{
-          model: Curso,
-          as: 'curso',
-          include: [{
-            model: Materia,
-            as: 'materia'
-          }]
-        }]
-      });
-    } catch (error) {
-      console.error('Error en obtenerPorAlumnoCurso:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Contar asistencias por estado
-   * HU04.1 - Para calcular porcentaje
-   * @param {string} alumnoId - ID del alumno
-   * @param {number} cursoId - ID del curso
-   * @param {string} estado - Estado ('presente', 'ausente', 'justificado')
-   * @returns {number}
-   */
-  async contarPorEstado(alumnoId, cursoId, estado) {
-    try {
-      return await Asistencia.count({
-        where: { alumnoId, cursoId, estado }
-      });
-    } catch (error) {
-      console.error('Error en contarPorEstado:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Obtener última asistencia registrada
-   * HU03.2 - Ver confirmación de asistencia registrada
-   * @param {string} alumnoId - ID del alumno
-   * @param {number} cursoId - ID del curso
-   * @returns {Object|null}
+   * OBTENER última asistencia (HU03.2 - confirmación)
    */
   async obtenerUltimaAsistencia(alumnoId, cursoId) {
     try {
@@ -120,45 +60,31 @@ class AsistenciaDAO {
           model: Curso,
           as: 'curso',
           include: [
-            {
-              model: Materia,
-              as: 'materia'
-            },
-            {
-              model: Salon,
-              as: 'salon'
-            }
+            { model: Materia, as: 'materia' },
+            { model: Salon, as: 'salon' }
           ]
         }]
       });
     } catch (error) {
-      console.error('Error en obtenerUltimaAsistencia:', error);
       throw error;
     }
   }
 
   /**
-   * Obtener todas las asistencias de un alumno (todas las materias)
-   * HU04.1 - Consultar historial de asistencias
-   * @param {string} alumnoId - ID del alumno
-   * @returns {Array}
+   * OBTENER por alumno y curso (HU04.1 - historial)
    */
-  async obtenerTodasPorAlumno(alumnoId) {
+  async obtenerPorAlumnoCurso(alumnoId, cursoId) {
     try {
       return await Asistencia.findAll({
-        where: { alumnoId },
+        where: { alumnoId, cursoId },
         order: [['fechaHora', 'DESC']],
         include: [{
           model: Curso,
           as: 'curso',
-          include: [{
-            model: Materia,
-            as: 'materia'
-          }]
+          include: [{ model: Materia, as: 'materia' }]
         }]
       });
     } catch (error) {
-      console.error('Error en obtenerTodasPorAlumno:', error);
       throw error;
     }
   }

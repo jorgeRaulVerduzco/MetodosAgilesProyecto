@@ -1,31 +1,23 @@
-const { Alumno, Usuario, Curso, Materia, Horario, Salon, Maestro, Asistencia } = require('../models');
+const { Alumno, Usuario, Curso, Materia, Horario, Salon, Maestro, CursoAlumno } = require('../models');
 
 class AlumnoDAO {
   /**
-   * Obtener alumno por ID con información de usuario
-   * @param {string} id - ID del alumno
-   * @returns {Object|null}
+   * INSCRIBIR alumno en curso (simular ITSON)
    */
-  async obtenerPorId(id) {
+  async inscribirEnCurso(alumnoId, cursoId) {
     try {
-      return await Alumno.findByPk(id, {
-        include: [{
-          model: Usuario,
-          as: 'usuario'
-        }]
+      return await CursoAlumno.create({
+        alumnoId,
+        cursoId,
+        fechaInscripcion: new Date()
       });
     } catch (error) {
-      console.error('Error en obtenerPorId:', error);
       throw error;
     }
   }
 
   /**
-   * 🆕 Obtener clases del alumno para HOY (solo el día actual)
-   * Para mostrar en "Registrar Asistencia"
-   * @param {string} alumnoId - ID del alumno
-   * @param {string} diaActual - Día de la semana (ej: "Lunes", "Martes")
-   * @returns {Array} Lista de cursos que tocan hoy
+   * OBTENER clases de HOY (HU03.1 - CLAVE PARA EL SPRINT 1)
    */
   async obtenerClasesHoy(alumnoId, diaActual) {
     try {
@@ -42,7 +34,7 @@ class AlumnoDAO {
             {
               model: Horario,
               as: 'horario',
-              where: { dia: diaActual }, // 🎯 FILTRAR SOLO POR DÍA ACTUAL
+              where: { dia: diaActual },
               attributes: ['id', 'dia', 'horaInicio', 'horaFin']
             },
             {
@@ -65,17 +57,12 @@ class AlumnoDAO {
 
       return alumno ? alumno.cursos : [];
     } catch (error) {
-      console.error('Error en obtenerClasesHoy:', error);
       throw error;
     }
   }
 
   /**
-   * Obtener horario completo de clases del alumno (periodo actual)
-   * HU02.1 - Ver horario de clases
-   * @param {string} alumnoId - ID del alumno
-   * @param {string} periodo - Periodo académico (ej: "2025-2")
-   * @returns {Array} Lista de TODOS los cursos del periodo
+   * OBTENER horario completo (HU02.1)
    */
   async obtenerHorario(alumnoId, periodo) {
     try {
@@ -98,7 +85,7 @@ class AlumnoDAO {
             {
               model: Salon,
               as: 'salon',
-              attributes: ['id', 'aula', 'edificio', 'ubicacionLat', 'ubicacionLong']
+              attributes: ['id', 'aula', 'edificio']
             },
             {
               model: Maestro,
@@ -115,52 +102,20 @@ class AlumnoDAO {
 
       return alumno ? alumno.cursos : [];
     } catch (error) {
-      console.error('Error en obtenerHorario:', error);
       throw error;
     }
   }
 
   /**
-   * Verificar si el alumno está inscrito en un curso
-   * @param {string} alumnoId - ID del alumno
-   * @param {number} cursoId - ID del curso
-   * @returns {boolean}
+   * VERIFICAR si está inscrito (HU03.1 - validación)
    */
   async estaInscritoEnCurso(alumnoId, cursoId) {
     try {
-      const { CursoAlumno } = require('../models');
       const count = await CursoAlumno.count({
         where: { alumnoId, cursoId }
       });
       return count > 0;
     } catch (error) {
-      console.error('Error en estaInscritoEnCurso:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Obtener asistencias del alumno en un curso específico
-   * @param {string} alumnoId - ID del alumno
-   * @param {number} cursoId - ID del curso
-   * @returns {Array} Lista de asistencias
-   */
-  async obtenerAsistenciasPorCurso(alumnoId, cursoId) {
-    try {
-      return await Asistencia.findAll({
-        where: { alumnoId, cursoId },
-        order: [['fechaHora', 'DESC']],
-        include: [{
-          model: Curso,
-          as: 'curso',
-          include: [{
-            model: Materia,
-            as: 'materia'
-          }]
-        }]
-      });
-    } catch (error) {
-      console.error('Error en obtenerAsistenciasPorCurso:', error);
       throw error;
     }
   }

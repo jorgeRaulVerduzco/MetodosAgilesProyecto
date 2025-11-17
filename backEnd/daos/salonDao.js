@@ -1,29 +1,36 @@
-const Salon = require("../models/salon.js");
+const { Salon } = require("../models");
 
-class SalonDao {
-  constructor() {}
-
-  async crear(datos) {
+class SalonDAO {
+  /**
+   * CREAR salón
+   */
+  async crear(data) {
     try {
-      return await Salon.create(datos);
+      return await Salon.create(data);
     } catch (error) {
-      throw new Error(error);
+      throw error;
     }
   }
-
-  async findAll() {
+  async obtenerTodos() {
     try {
-      return await Salon.findAll();
+      return await Salon.findAll({
+        order: [
+          ["edificio", "ASC"],
+          ["aula", "ASC"],
+        ],
+      });
     } catch (error) {
-      throw new Error(error);
+      console.error("Error en obtenerTodos:", error);
+      throw error;
     }
   }
-
-  async findById(id) {
+  async obtenerPorId(id) {
     try {
       return await Salon.findByPk(id);
     } catch (error) {
-      throw new Error(error);
+      throw error;
     }
   }
 }
+
+module.exports = new SalonDAO();
