@@ -1,27 +1,55 @@
 'use strict';
-const {
-  Model
-} = require('sequelize');
+const { Model } = require('sequelize');
+
 module.exports = (sequelize, DataTypes) => {
   class Salon extends Model {
-    /**
-     * Helper method for defining associations.
-     * This method is not a part of Sequelize lifecycle.
-     * The `models/index` file will call this method automatically.
-     */
     static associate(models) {
-      // define association here
+      // Salon tiene muchos cursos
+      Salon.hasMany(models.Curso, {
+        foreignKey: 'salonId',
+        as: 'cursos'
+      });
     }
   }
+
   Salon.init({
-    aula: DataTypes.STRING,
-    edificio: DataTypes.STRING,
-    ubicacionLat: DataTypes.FLOAT,
-    ubicacionLong: DataTypes.FLOAT,
-    capacidad: DataTypes.INTEGER
+    aula: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    edificio: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    ubicacionLat: {
+      type: DataTypes.FLOAT,
+      allowNull: false,
+      validate: {
+        min: -90,
+        max: 90
+      }
+    },
+    ubicacionLong: {
+      type: DataTypes.FLOAT,
+      allowNull: false,
+      validate: {
+        min: -180,
+        max: 180
+      }
+    },
+    capacidad: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      validate: {
+        min: 1
+      }
+    }
   }, {
     sequelize,
     modelName: 'Salon',
+    tableName: 'Salones',
+    timestamps: true
   });
+
   return Salon;
 };
