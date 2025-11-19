@@ -7,7 +7,7 @@ const {
   Salon,
   Maestro,
   CursoAlumno,
-  Asistencia, // <-- IMPORTAR ASISTENCIA
+  Asistencia, 
 } = require("../models");
 class AlumnoDAO {
   /**
@@ -26,7 +26,7 @@ class AlumnoDAO {
   }
 
   /**
-   * OBTENER clases de HOY (HU03.1 - CLAVE PARA EL SPRINT 1)
+   * OBTENER clases de HOY 
    */
   async obtenerClasesHoy(alumnoId, diaActual) {
     try {

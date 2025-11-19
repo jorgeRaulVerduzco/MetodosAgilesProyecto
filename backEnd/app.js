@@ -10,16 +10,18 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Importar rutas
-const usuarioRoutes = require('./routes/UsuarioRoutes.js');
-const alumnoRoutes = require('./routes/AlumnoRoutes.js');
-const asistenciaRoutes = require('./routes/AsistenciaRoutes.js');
-const cursoRoutes = require('./routes/CursoRoutes.js');
+const usuarioRoutes = require("./routes/UsuarioRoutes.js");
+const alumnoRoutes = require("./routes/AlumnoRoutes.js");
+const asistenciaRoutes = require("./routes/AsistenciaRoutes.js");
+const cursoRoutes = require("./routes/CursoRoutes.js");
+const maestroRouter = require("./routes/MaestroRoutes.js");
 
 // Configurar rutas
 app.use("/api/usuario", usuarioRoutes);
 app.use("/api/alumno", alumnoRoutes);
 app.use("/api/asistencia", asistenciaRoutes);
 app.use("/api/curso", cursoRoutes);
+app.use("/api", maestroRouter);
 
 // Ruta de prueba
 app.get("/api/health", (req, res) => {
@@ -51,9 +53,8 @@ app.use((error, req, res, next) => {
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(` Servidor corriendo en puerto ${PORT}`);
-  console.log(` API disponible en http://localhost:${PORT}/api`);
+  console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
+  console.log(`📡 API disponible en http://localhost:${PORT}/api`);
 });
 
 module.exports = app;
-

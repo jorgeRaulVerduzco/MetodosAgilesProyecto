@@ -63,7 +63,7 @@ class CursoDAO {
   }
 
   /**
-   * OBTENER asistencias con estadísticas (HU06.1)
+   * OBTENER asistencias con estadticas (HU06.1)
    */
   async obtenerAsistenciasConEstadisticas(cursoId, filtros = {}) {
     try {
