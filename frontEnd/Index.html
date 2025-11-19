@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ITSON - Registrar Asistencia</title>
+    <link rel="stylesheet" href="styles.css"> 
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <span class="portal-title">ITSON - Portal Alumno</span>
+            <span class="user-name">Manuel Perez</span>
+        </div>
+        <button class="logout-btn">
+            <span class="material-icons">exit_to_app</span>
+            Cerrar Sesión
+        </button>
+    </header>
+
+    <div class="main-container">
+        <nav class="tabs">
+            <a href="index.html" class="tab">Mi Horario</a>
+            <a href="index.html" class="tab">Registrar Asistencia</a>
+            <a href="historial_general.html" class="tab">Historial de Asistencias</a>
+        </nav>
+
+        <section class="attendance-register">
+            <h2 class="section-title">Registrar Asistencia</h2>
+            <p class="date-time">miércoles, 19 de noviembre de 2025 - 3:24:43 p.m.</p>
+
+            <div class="alert success" id="success-alert" style="display: none;">
+                <span class="material-icons check-icon">check_circle</span>
+                <div class="alert-text">
+                    <p><strong>¡Asistencia registrada exitosamente!</strong></p>
+                    <p>Hora de registro: **03:24:42**</p>
+                    <p>Materia: **Base de Datos**</p>
+                    <p>Edificio 3, Aula **105**</p>
+                </div>
+            </div>
+
+            <div class="current-class-card">
+                <h3>Clase Actual</h3>
+                <div class="class-info">
+                    <p class="subject">Base de Datos</p>
+                    <div class="detail-row">
+                        <span class="material-icons icon-time">schedule</span>
+                        <p>09:00 - 11:00</p>
+                    </div>
+                    <div class="detail-row">
+                        <span class="material-icons icon-location">place</span>
+                        <p>Edificio 3, Aula 105</p>
+                    </div>
+                </div>
+
+                <div class="location-status-container">
+                    <p>Estado de ubicación:</p>
+                    <span class="location-status-text">
+                        <span class="material-icons check-icon">check</span> En el salón
+                    </span>
+                </div>
+
+                <button class="register-button active-button" id="register-btn" onclick="registrarAsistencia()">
+                    Registrar Mi Asistencia
+                </button>
+
+                <div class="register-button disabled-state" id="registered-state" style="display: none;">
+                    Asistencia Registrada
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        function registrarAsistencia() {
+            document.getElementById('register-btn').style.display = 'none';
+
+            document.getElementById('registered-state').style.display = 'flex'; 
+
+            document.getElementById('success-alert').style.display = 'flex'; 
+        }
+    </script>
+</body>
+</html>

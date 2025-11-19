@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ITSON - Historial de Asistencias</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+
+<body>
+    <header class="header">
+        <div class="header-content">
+            <span class="portal-title">ITSON - Portal Alumno</span>
+            <span class="user-name">Manuel Perez</span>
+        </div>
+        <button class="logout-btn">
+            <span class="material-icons">exit_to_app</span>
+            Cerrar Sesión
+        </button>
+    </header>
+
+    <div class="main-container">
+        <nav class="tabs">
+            <a href="index.html" class="tab">Mi Horario</a> 
+            <a href="index.html" class="tab">Registrar Asistencia</a>
+            <a href="historial.html" class="tab active">Historial de Asistencias</a>
+        </nav>
+
+        <section class="attendance-history">
+            <h2 class="section-title">Historial de Asistencias</h2>
+            <p class="section-subtitle">Consulta tus asistencias por materia</p>
+
+            <div class="back-link">
+                <span class="material-icons">arrow_back</span>
+                <a href="#">Volver a todas las materias</a>
+            </div>
+
+            <h3 class="subject-title">Ingeniería de Software</h3>
+
+            <div class="summary-card">
+                <div class="summary-item">
+                    <span class="label">Total de clases</span>
+                    <span class="value">32</span>
+                </div>
+                <div class="summary-item">
+                    <span class="label green">Asistencias</span>
+                    <span class="value green">30</span>
+                </div>
+                <div class="summary-item">
+                    <span class="label red">Faltas</span>
+                    <span class="value red">2</span>
+                </div>
+            </div>
+
+            <div class="percentage-container">
+                <p class="percentage-label">Porcentaje de asistencia:</p>
+                <div class="progress-bar-wrapper">
+                    <span class="percentage-text">93.75%</span>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 93.75%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 class="register-title">Registro de asistencias</h3>
+
+            <div class="attendance-list">
+
+                <div class="attendance-item">
+                    <div class="status-icon present">
+                        <span class="material-icons">check_circle</span>
+                    </div>
+                    <div class="details">
+                        <p class="date">domingo, 9 de noviembre de 2025</p>
+                        <p class="time">Registrado a las 07:05</p>
+                    </div>
+                    <span class="result present-text">Presente</span>
+                </div>
+
+                <div class="attendance-item">
+                    <div class="status-icon present">
+                        <span class="material-icons">check_circle</span>
+                    </div>
+                    <div class="details">
+                        <p class="date">viernes, 7 de noviembre de 2025</p>
+                        <p class="time">Registrado a las 07:03</p>
+                    </div>
+                    <span class="result present-text">Presente</span>
+                </div>
+
+                <div class="attendance-item">
+                    <div class="status-icon present">
+                        <span class="material-icons">check_circle</span>
+                    </div>
+                    <div class="details">
+                        <p class="date">miércoles, 5 de noviembre de 2025</p>
+                        <p class="time">Registrado a las 07:08</p>
+                    </div>
+                    <span class="result present-text">Presente</span>
+                </div>
+
+                <div class="attendance-item absent">
+                    <div class="status-icon absent-icon">
+                        <span class="material-icons">cancel</span>
+                    </div>
+                    <div class="details">
+                        <p class="date">domingo, 2 de noviembre de 2025</p>
+                        <p class="time"></p>
+                    </div>
+                    <span class="result absent-text">Ausente</span>
+                </div>
+
+                <div class="attendance-item">
+                    <div class="status-icon present">
+                        <span class="material-icons">check_circle</span>
+                    </div>
+                    <div class="details">
+                        <p class="date">viernes, 31 de octubre de 2025</p>
+                        <p class="time">Registrado a las 07:02</p>
+                    </div>
+                    <span class="result present-text">Presente</span>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+
+</html>
