@@ -1,6 +1,7 @@
 // seedITSON.js
 // Seed completo para simular sistema real del ITSON
 // Ejecutar: node seedITSON.js
+const { Op } = require("sequelize");
 
 const axios = require('axios');
 const {
@@ -484,11 +485,17 @@ async function crearHistorialAlumnoPrincipal(cursosCreados) {
     { presente: 28, ausente: 4 },  // 87.50% - Base de Datos
     { presente: 31, ausente: 1 },  // 96.88% - Redes
     { presente: 29, ausente: 3 },  // 90.63% - Desarrollo Web
-    { presente: 15, ausente: 1 },  // 93.75% - IA
+    { presente: 15, ausente: 1 },  // 93.75% - IA (CLASE ACTIVA - sin asistencia de hoy)
   ];
 
+  // Obtener el día actual para detectar la clase activa
+  const ahora = new Date();
+  const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const diaActual = diasSemana[ahora.getDay()];
+  const horaActualMinutos = ahora.getHours() * 60 + ahora.getMinutes();
+
   for (let i = 0; i < cursosCreados.length; i++) {
-    const { curso, salon } = cursosCreados[i];
+    const { curso, salon, horario } = cursosCreados[i];
     
     // Si el curso está en los primeros 5, usar datos predefinidos
     // Si no, generar datos aleatorios
@@ -507,32 +514,79 @@ async function crearHistorialAlumnoPrincipal(cursosCreados) {
     const totalClases = datos.presente + datos.ausente;
     const fechas = generarFechasPasadas(totalClases);
 
-    // Asistencias
-    for (let j = 0; j < datos.presente; j++) {
-      await AsistenciaDAO.crear({
-        alumnoId: CONFIG.ALUMNO_PRINCIPAL_ID,
-        cursoId: curso.id,
-        fechaHora: fechas[j],
-        estado: 'presente',
-        ubicacionLat: salon.ubicacionLat,
-        ubicacionLong: salon.ubicacionLong,
-      });
+    // Verificar si este curso es la clase activa de HOY
+    let esClaseActiva = false;
+    if (horario.dia === diaActual) {
+      const [horaInicioH, horaInicioM] = horario.horaInicio.split(':').map(Number);
+      const horaInicio = horaInicioH * 60 + horaInicioM;
+      const [horaFinH, horaFinM] = horario.horaFin.split(':').map(Number);
+      const horaFin = horaFinH * 60 + horaFinM;
+      
+      // Margen de 15 minutos antes y después
+      const margen = 15;
+      esClaseActiva = horaActualMinutos >= (horaInicio - margen) && 
+                      horaActualMinutos <= (horaFin + margen);
     }
 
-    // Faltas
-    for (let j = datos.presente; j < totalClases; j++) {
-      await AsistenciaDAO.crear({
-        alumnoId: CONFIG.ALUMNO_PRINCIPAL_ID,
-        cursoId: curso.id,
-        fechaHora: fechas[j],
-        estado: 'ausente',
-        ubicacionLat: null,
-        ubicacionLong: null,
-      });
-    }
+    // Si es la clase activa, NO crear asistencia para HOY
+    if (esClaseActiva) {
+      log(`   🎯 ${curso.nombre}: CLASE ACTIVA AHORA`, 'yellow');
+      log(`      → NO se crea asistencia de hoy (se registrará manualmente)`, 'cyan');
+      
+      // Crear solo asistencias PASADAS (todas las fechas generadas son pasadas)
+      for (let j = 0; j < datos.presente; j++) {
+        await AsistenciaDAO.crear({
+          alumnoId: CONFIG.ALUMNO_PRINCIPAL_ID,
+          cursoId: curso.id,
+          fechaHora: fechas[j],
+          estado: 'presente',
+          ubicacionLat: salon.ubicacionLat,
+          ubicacionLong: salon.ubicacionLong,
+        });
+      }
 
-    const porcentaje = ((datos.presente / totalClases) * 100).toFixed(2);
-    log(`   ✅ ${curso.nombre}: ${datos.presente}/${totalClases} (${porcentaje}%)`, 'green');
+      for (let j = datos.presente; j < totalClases; j++) {
+        await AsistenciaDAO.crear({
+          alumnoId: CONFIG.ALUMNO_PRINCIPAL_ID,
+          cursoId: curso.id,
+          fechaHora: fechas[j],
+          estado: 'ausente',
+          ubicacionLat: null,
+          ubicacionLong: null,
+        });
+      }
+
+      const porcentaje = ((datos.presente / totalClases) * 100).toFixed(2);
+      log(`      Historial: ${datos.presente}/${totalClases} (${porcentaje}%)`, 'green');
+      log(`      ✅ Listo para registrar asistencia manualmente`, 'green');
+      
+    } else {
+      // Clase normal - crear todas las asistencias
+      for (let j = 0; j < datos.presente; j++) {
+        await AsistenciaDAO.crear({
+          alumnoId: CONFIG.ALUMNO_PRINCIPAL_ID,
+          cursoId: curso.id,
+          fechaHora: fechas[j],
+          estado: 'presente',
+          ubicacionLat: salon.ubicacionLat,
+          ubicacionLong: salon.ubicacionLong,
+        });
+      }
+
+      for (let j = datos.presente; j < totalClases; j++) {
+        await AsistenciaDAO.crear({
+          alumnoId: CONFIG.ALUMNO_PRINCIPAL_ID,
+          cursoId: curso.id,
+          fechaHora: fechas[j],
+          estado: 'ausente',
+          ubicacionLat: null,
+          ubicacionLong: null,
+        });
+      }
+
+      const porcentaje = ((datos.presente / totalClases) * 100).toFixed(2);
+      log(`   ✅ ${curso.nombre}: ${datos.presente}/${totalClases} (${porcentaje}%)`, 'green');
+    }
   }
 }
 
@@ -587,7 +641,29 @@ function generarFechasPasadas(cantidad) {
 
   return fechas.sort((a, b) => a - b);
 }
+async function limpiarAsistenciasHoraActual() {
+   const inicioDia = new Date();
+  inicioDia.setHours(0, 0, 0, 0);
 
+  const finDia = new Date();
+  finDia.setHours(23, 59, 59, 999);
+
+  log('🧹 Limpiando asistencias de HOY (para evitar duplicados)...', 'yellow');
+
+  const deletedCount = await Asistencia.destroy({
+    where: {
+      fechaHora: {
+        [Op.between]: [inicioDia, finDia],
+      },
+    },
+  });
+
+  if (deletedCount > 0) {
+    log(`   ✅ Se eliminaron ${deletedCount} asistencias de hoy`, 'green');
+  } else {
+    log(`   ℹ️  No había asistencias de hoy`, 'cyan');
+  }
+}
 // ========================================
 // EJECUCIÓN PRINCIPAL
 // ========================================
@@ -608,7 +684,7 @@ async function ejecutar() {
 
     // Ejecutar seed
     await crearDatosITSON();
-
+await limpiarAsistenciasHoraActual()
   } catch (error) {
     log(`\n❌ Error fatal: ${error.message}`, 'red');
     console.error(error);

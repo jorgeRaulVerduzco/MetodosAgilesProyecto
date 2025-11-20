@@ -9,13 +9,16 @@ router.use(validateJWT);
 // HU02.1 - Ver horario de clases
 router.get('/horario/:periodo', alumnoController.obtenerHorario);
 
-// HU03.1 - Obtener clases de hoy (CLAVE SPRINT 1)
+// HU03.1 - Obtener clases de hoy
 router.get('/clases-hoy', alumnoController.obtenerClasesHoy);
 
-// HU04.1 - Consultar historial de asistencias por curso
-router.get('/historial-asistencias', alumnoController.obtenerHistorialAsistencias); // <-- ESTA LÍNEA
+// HU04.1 - Obtener historial general de asistencias
+router.get('/historial-asistencias', alumnoController.obtenerHistorialAsistencias);
 
-// Verificar inscripción en curso (validación)
+// HU04.2 - Obtener detalle de asistencias por curso (NUEVA RUTA)
+router.get('/asistencias/curso/:cursoId', alumnoController.obtenerAsistenciasPorCurso);
+
+// Verificar si está inscrito en el curso
 router.get('/inscrito/:cursoId', alumnoController.estaInscritoEnCurso);
 
 module.exports = router;
