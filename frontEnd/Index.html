@@ -11,9 +11,9 @@
     <header class="header">
         <div class="header-content">
             <span class="portal-title">ITSON - Portal Alumno</span>
-            <span class="user-name">Manuel Perez</span>
+            <span class="user-name" id="user-name">Manuel Perez</span>
         </div>
-        <button class="logout-btn">
+        <button class="logout-btn" onclick="cerrarSesion()">
             <span class="material-icons">exit_to_app</span>
             Cerrar Sesión
         </button>
@@ -28,58 +28,261 @@
 
         <section class="attendance-register">
             <h2 class="section-title">Registrar Asistencia</h2>
-            <p class="date-time">miércoles, 19 de noviembre de 2025 - 3:24:43 p.m.</p>
+            <p class="date-time" id="date-time">miércoles, 19 de noviembre de 2025 - 3:24:43 p.m.</p>
 
             <div class="alert success" id="success-alert" style="display: none;">
                 <span class="material-icons check-icon">check_circle</span>
-                <div class="alert-text">
+                <div class="alert-text" id="success-text">
                     <p><strong>¡Asistencia registrada exitosamente!</strong></p>
-                    <p>Hora de registro: **03:24:42**</p>
-                    <p>Materia: **Base de Datos**</p>
-                    <p>Edificio 3, Aula **105**</p>
+                    <p>Hora de registro: <strong>03:24:42</strong></p>
+                    <p>Materia: <strong>Base de Datos</strong></p>
+                    <p>Edificio 3, Aula <strong>105</strong></p>
                 </div>
             </div>
 
-            <div class="current-class-card">
-                <h3>Clase Actual</h3>
-                <div class="class-info">
-                    <p class="subject">Base de Datos</p>
-                    <div class="detail-row">
-                        <span class="material-icons icon-time">schedule</span>
-                        <p>09:00 - 11:00</p>
+            <div id="loading-container" style="text-align: center; padding: 40px; display: block;">
+                <p>Cargando tus clases de hoy...</p>
+            </div>
+
+            <div id="no-classes-container" style="text-align: center; padding: 40px; display: none;">
+                <p style="font-size: 18px; color: #666;">No tienes clases hoy</p>
+                <p style="color: #999;">Disfruta tu día libre 😊</p>
+            </div>
+
+            <div id="class-container" style="display: none;">
+                <div class="current-class-card">
+                    <h3>Clase Actual</h3>
+                    <div class="class-info">
+                        <p class="subject" id="subject-name">Base de Datos</p>
+                        <div class="detail-row">
+                            <span class="material-icons icon-time">schedule</span>
+                            <p id="class-time">09:00 - 11:00</p>
+                        </div>
+                        <div class="detail-row">
+                            <span class="material-icons icon-location">place</span>
+                            <p id="class-location">Edificio 3, Aula 105</p>
+                        </div>
                     </div>
-                    <div class="detail-row">
-                        <span class="material-icons icon-location">place</span>
-                        <p>Edificio 3, Aula 105</p>
+
+                    <div class="location-status-container">
+                        <p>Estado de ubicación:</p>
+                        <span class="location-status-text" id="location-status">
+                            <span class="material-icons check-icon">check</span> En el salón
+                        </span>
                     </div>
-                </div>
 
-                <div class="location-status-container">
-                    <p>Estado de ubicación:</p>
-                    <span class="location-status-text">
-                        <span class="material-icons check-icon">check</span> En el salón
-                    </span>
-                </div>
+                    <button class="register-button active-button" id="register-btn" onclick="registrarAsistencia()">
+                        Registrar Mi Asistencia
+                    </button>
 
-                <button class="register-button active-button" id="register-btn" onclick="registrarAsistencia()">
-                    Registrar Mi Asistencia
-                </button>
-
-                <div class="register-button disabled-state" id="registered-state" style="display: none;">
-                    Asistencia Registrada
+                    <div class="register-button disabled-state" id="registered-state" style="display: none;">
+                        Asistencia Registrada
+                    </div>
                 </div>
             </div>
         </section>
     </div>
 
     <script>
-        function registrarAsistencia() {
-            document.getElementById('register-btn').style.display = 'none';
+        const API_URL = "http://localhost:3002";
+        let token = null;
+        let alumnoId = null;
+        let currentClass = null;
 
-            document.getElementById('registered-state').style.display = 'flex'; 
-
-            document.getElementById('success-alert').style.display = 'flex'; 
+        // Obtener token del localStorage
+        function obtenerToken() {
+            token = localStorage.getItem('token');
+            alumnoId = localStorage.getItem('alumnoId');
+            
+            if (!token || !alumnoId) {
+                alert('No hay sesión activa. Redirigiendo al login...');
+                window.location.href = 'login.html';
+                return false;
+            }
+            return true;
         }
+
+        // Función para actualizar fecha y hora
+        function actualizarFechaHora() {
+            const ahora = new Date();
+            const opciones = { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            };
+            document.getElementById('date-time').textContent = 
+                ahora.toLocaleDateString('es-ES', opciones);
+        }
+
+        // Función para simular ubicación (siempre en el salón)
+        function simularUbicacion() {
+            return {
+                latitud: 27.4813,
+                longitud: -109.9307,
+                enSalon: true
+            };
+        }
+
+        // Función para cargar clases del día
+        async function cargarClasesHoy() {
+            try {
+                const response = await fetch(`${API_URL}/api/alumno/clases-hoy/${alumnoId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                document.getElementById('loading-container').style.display = 'none';
+
+                if (data.success && data.clases && data.clases.length > 0) {
+                    currentClass = data.clases[0];
+                    await verificarAsistenciaRegistrada();
+                    mostrarClase();
+                } else {
+                    mostrarNoClases();
+                }
+
+            } catch (error) {
+                document.getElementById('loading-container').style.display = 'none';
+                alert('Error al cargar clases: ' + error.message);
+            }
+        }
+
+        // Función para verificar si ya se registró asistencia
+        async function verificarAsistenciaRegistrada() {
+            try {
+                const response = await fetch(`${API_URL}/api/asistencia/existe-hoy/${alumnoId}/${currentClass.id}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+                currentClass.asistenciaRegistrada = data.existe || false;
+
+            } catch (error) {
+                currentClass.asistenciaRegistrada = false;
+            }
+        }
+
+        // Función para mostrar la clase actual
+        function mostrarClase() {
+            document.getElementById('class-container').style.display = 'block';
+            
+            document.getElementById('subject-name').textContent = currentClass.nombre || 'Clase sin nombre';
+            document.getElementById('class-time').textContent = 
+                `${currentClass.horaInicio || '00:00'} - ${currentClass.horaFin || '00:00'}`;
+            document.getElementById('class-location').textContent = 
+                `${currentClass.edificio || 'Edificio'}, ${currentClass.aula || 'Aula'}`;
+
+            // Mostrar ubicación simulada
+            const ubicacion = simularUbicacion();
+            const locationStatus = document.getElementById('location-status');
+            locationStatus.innerHTML = ubicacion.enSalon 
+                ? '<span class="material-icons check-icon">check</span> En el salón'
+                : '<span class="material-icons check-icon">close</span> Fuera del salón';
+
+            // Manejar estado de asistencia registrada
+            if (currentClass.asistenciaRegistrada) {
+                document.getElementById('register-btn').style.display = 'none';
+                document.getElementById('registered-state').style.display = 'flex';
+            } else {
+                document.getElementById('register-btn').style.display = 'block';
+                document.getElementById('registered-state').style.display = 'none';
+            }
+        }
+
+        // Función para mostrar cuando no hay clases
+        function mostrarNoClases() {
+            document.getElementById('no-classes-container').style.display = 'block';
+        }
+
+        // Función para registrar asistencia
+        async function registrarAsistencia() {
+            const ubicacion = simularUbicacion();
+            const btn = document.getElementById('register-btn');
+            btn.disabled = true;
+            btn.textContent = 'Registrando...';
+
+            try {
+                const body = {
+                    cursoId: currentClass.id,
+                    ubicacion: {
+                        latitud: ubicacion.latitud,
+                        longitud: ubicacion.longitud
+                    }
+                };
+
+                const response = await fetch(`${API_URL}/api/asistencia/${alumnoId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(body)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const ahora = new Date();
+                    const horaRegistro = ahora.toLocaleTimeString('es-ES');
+                    
+                    // Mostrar mensaje de éxito
+                    const successText = document.getElementById('success-text');
+                    successText.innerHTML = `
+                        <p><strong>¡Asistencia registrada exitosamente!</strong></p>
+                        <p>Hora de registro: <strong>${horaRegistro}</strong></p>
+                        <p>Materia: <strong>${currentClass.nombre}</strong></p>
+                        <p>${currentClass.edificio}, <strong>${currentClass.aula}</strong></p>
+                    `;
+                    document.getElementById('success-alert').style.display = 'flex';
+
+                    // Cambiar el botón por el estado registrado
+                    document.getElementById('register-btn').style.display = 'none';
+                    document.getElementById('registered-state').style.display = 'flex';
+
+                } else {
+                    alert('Error al registrar asistencia: ' + (data.message || 'Inténtalo de nuevo'));
+                    btn.disabled = false;
+                    btn.textContent = 'Registrar Mi Asistencia';
+                }
+
+            } catch (error) {
+                alert('Error de conexión: ' + error.message);
+                btn.disabled = false;
+                btn.textContent = 'Registrar Mi Asistencia';
+            }
+        }
+
+        // Función para cerrar sesión
+        function cerrarSesion() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('alumnoId');
+            window.location.href = 'login.html';
+        }
+
+        // Inicializar la página
+        async function init() {
+            if (!obtenerToken()) return;
+            
+            actualizarFechaHora();
+            setInterval(actualizarFechaHora, 1000);
+            await cargarClasesHoy();
+        }
+
+        // Ejecutar al cargar la página
+        window.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
