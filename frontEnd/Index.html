@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ITSON - Registrar Asistencia</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    /* Pequeño ajuste inline para centrar los mensajes mientras usas el CSS completo */
+    #loading, #noClases { text-align: center; padding: 40px; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <span class="portal-title">ITSON - Portal Alumno</span>
+      <span class="user-name" id="userName">Cargando...</span>
+    </div>
+    <button class="logout-btn" onclick="cerrarSesion()">
+      <span class="material-icons">exit_to_app</span>
+      Cerrar Sesión
+    </button>
+  </header>
+
+  <div class="main-container">
+    <nav class="tabs">
+      <a href="index.html" class="tab active">Registrar Asistencia</a>
+      <a href="historial_general.html" class="tab">Historial de Asistencias</a>
+    </nav>
+
+    <section class="attendance-register">
+      <h2 class="section-title">Registrar Asistencia</h2>
+      <p class="date-time" id="currentDateTime">Cargando...</p>
+
+      <div class="alert success" id="success-alert" style="display: none;">
+        <span class="material-icons check-icon">check_circle</span>
+        <div class="alert-text">
+          <p><strong>¡Asistencia registrada exitosamente!</strong></p>
+          <p id="successDetails"></p>
+        </div>
+      </div>
+
+      <div class="alert error" id="error-alert" style="display: none;">
+        <span class="material-icons">error</span>
+        <div class="alert-text">
+          <p id="errorMessage"></p>
+        </div>
+      </div>
+
+      <div id="loading">
+        <p>Cargando clases de hoy...</p>
+      </div>
+
+      <div id="clasesList" style="display: none;"></div>
+
+      <div id="noClases" style="display: none;">
+        <span class="material-icons" style="font-size: 64px; color: #cbd5e0;">event_busy</span>
+        <p style="margin-top: 16px; color: #718096;">No tienes clases programadas para hoy</p>
+      </div>
+    </section>
+  </div>
+
+  <script src="auth.js"></script>
+  <script>
+    /**********************************************************************
+     * Ajustes y helpers
+     **********************************************************************/
+    // Si quieres que la UI siempre muestre "En el salón (simulado)" y
+    // permita registro aunque estés fuera, deja en true.
+    // Si quieres comportamiento real, pon false.
+    const FORCE_LOCATION_OK = true;
+
+    let clasesHoy = [];
+
+    function obtenerDiaActual() {
+      const dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+      return dias[new Date().getDay()];
+    }
+
+    // apiFetch intenta usar fetchAuth (si existe) y si no existe hace fetch a /api/...
+    async function apiFetch(path, options = {}) {
+      // si existe fetchAuth en auth.js lo usamos (maneja token)
+      if (typeof fetchAuth === 'function') {
+        try {
+          return await fetchAuth(path, options);
+        } catch (err) {
+          console.warn('fetchAuth falló, intentando fallback fetch:', err);
+        }
+      }
+
+      // fallback: fetch directo a /api + path
+      const token = localStorage.getItem('token') || '';
+      const headers = Object.assign({ 'Content-Type': 'application/json' }, options.headers || {});
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const resp = await fetch(`/api${path}`, {
+        method: options.method || 'GET',
+        headers,
+        body: options.body
+      });
+
+      // devolver JSON parseado
+      const json = await resp.json();
+      return json;
+    }
+
+    /**********************************************************************
+     * Cargar datos iniciales
+     **********************************************************************/
+    async function cargarDatos() {
+      const usuario = (typeof verificarAutenticacion === 'function') ? verificarAutenticacion() : null;
+      if (!usuario) {
+        // si no hay función verificarAutenticacion, intentar leer nombre en localStorage
+        const nombre = localStorage.getItem('userName') || null;
+        if (!nombre) return console.warn('Usuario no autenticado y no se detectó verificarAutenticacion()');
+        document.getElementById('userName').textContent = nombre;
+      } else {
+        document.getElementById('userName').textContent = `${usuario.nombres} ${usuario.apellidos}`;
+      }
+
+      actualizarFechaHora();
+      setInterval(actualizarFechaHora, 1000);
+
+      try {
+        // Llamada API: /api/alumno/clases-hoy  (apiFetch añade /api internamente en fallback)
+        const resp = await apiFetch('/alumno/clases-hoy');
+
+        // normalizar respuestas posibles:
+        // casos: resp -> { success, data: { clases: [...] } }
+        //        resp -> { data: { clases: [...] } }
+        //        resp -> { clases: [...] }
+        //        resp -> parsed body directly
+        const clases =
+          resp?.data?.clases ??
+          resp?.clases ??
+          resp?.data ??
+          (Array.isArray(resp) ? resp : undefined) ??
+          [];
+
+        // si resp.data tiene forma {clases, diaActual, ...} manejarlo
+        if (resp?.data && resp.data.clases) {
+          clasesHoy = Array.isArray(resp.data.clases) ? resp.data.clases : [];
+        } else if (Array.isArray(clases)) {
+          clasesHoy = clases;
+        } else {
+          // si viene un objeto con propiedad 'clases' en otra forma
+          clasesHoy = [];
+        }
+
+        // muestra
+        mostrarClases();
+      } catch (err) {
+        console.error('Error cargando clases de hoy:', err);
+        mostrarError('Error de conexión con el servidor');
+      }
+    }
+
+    function actualizarFechaHora() {
+      const ahora = new Date();
+      const opciones = {
+        weekday:'long', year:'numeric', month:'long', day:'numeric',
+        hour:'2-digit', minute:'2-digit', second:'2-digit'
+      };
+      document.getElementById('currentDateTime').textContent = ahora.toLocaleDateString('es-MX', opciones);
+    }
+
+    /**********************************************************************
+     * Renderizado de clases
+     **********************************************************************/
+    function mostrarClases() {
+      const loading = document.getElementById('loading');
+      const clasesList = document.getElementById('clasesList');
+      const noClases = document.getElementById('noClases');
+
+      loading.style.display = 'none';
+      clasesList.innerHTML = '';
+
+      if (!clasesHoy || clasesHoy.length === 0) {
+        noClases.style.display = 'block';
+        clasesList.style.display = 'none';
+        return;
+      }
+
+      noClases.style.display = 'none';
+      clasesList.style.display = 'block';
+
+      clasesList.innerHTML = clasesHoy.map(clase => {
+        const materiaNombre = clase.nombre ?? (clase.materia && clase.materia.nombre) ?? 'Sin nombre';
+        const horaInicio = clase.horario?.horaInicio ? clase.horario.horaInicio.slice(0,5) : '--:--';
+        const horaFin = clase.horario?.horaFin ? clase.horario.horaFin.slice(0,5) : '--:--';
+        const edificio = clase.salon?.edificio ?? '-';
+        const aula = clase.salon?.aula ?? '-';
+        const maestroN = clase.maestro?.nombres ?? (clase.maestro?.usuario?.nombres) ?? 'Profesor';
+        const maestroA = clase.maestro?.apellidos ?? (clase.maestro?.usuario?.apellidos) ?? '';
+
+        return `
+          <div class="current-class-card" data-curso-id="${clase.id}">
+            <h3>${materiaNombre}</h3>
+            <div class="class-info">
+              <p class="subject">${clase.nombre ?? materiaNombre}</p>
+
+              <div class="detail-row">
+                <span class="material-icons icon-time">schedule</span>
+                <p>${horaInicio} - ${horaFin}</p>
+              </div>
+
+              <div class="detail-row">
+                <span class="material-icons icon-location">place</span>
+                <p>Edificio ${edificio}, Aula ${aula}</p>
+              </div>
+
+              <div class="detail-row">
+                <span class="material-icons">person</span>
+                <p>Maestro: ${maestroN} ${maestroA}</p>
+              </div>
+            </div>
+
+            <div class="location-status-container" id="location-${clase.id}">
+              <p>Verificando ubicación...</p>
+            </div>
+
+            <button class="register-button active-button"
+                    id="btn-${clase.id}"
+                    onclick="registrarAsistencia(${clase.id})">
+              Registrar Mi Asistencia
+            </button>
+
+            <div class="register-button disabled-state"
+                 id="registered-${clase.id}"
+                 style="display: none;">
+              Asistencia Registrada
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // después de renderizar, verificar asistencias ya registradas y estado de ubicación
+      clasesHoy.forEach(clase => verificarAsistenciaRegistrada(clase.id));
+      verificarUbicacion(); // esto actualizará los containers de ubicación
+    }
+
+    /**********************************************************************
+     * Verificar si ya registró hoy (consulta al servidor)
+     **********************************************************************/
+async function verificarAsistenciaRegistrada(cursoId) {
+  try {
+    const resp = await apiFetch(`/asistencia/existe-hoy/${cursoId}`);
+
+    console.log("RESPUESTA DEL SERVER:", resp);
+
+    // El backend DEBE regresar { existe: true } o { existe: false }
+    let existe = false;
+
+    if (typeof resp?.existe === "boolean") {
+      existe = resp.existe;
+    } else if (typeof resp?.data?.existe === "boolean") {
+      existe = resp.data.existe;
+    }
+
+    if (existe === true) {
+      document.getElementById(`btn-${cursoId}`).style.display = "none";
+      document.getElementById(`registered-${cursoId}`).style.display = "flex";
+    } else {
+      document.getElementById(`btn-${cursoId}`).style.display = "block";
+      document.getElementById(`registered-${cursoId}`).style.display = "none";
+    }
+
+  } catch (err) {
+    console.error("Error verificando asistencia:", err);
+  }}
+
+    /**********************************************************************
+     * Verificar ubicación (solo UI). Si FORCE_LOCATION_OK = true mostramos
+     * siempre "En el salón (simulado)". Si es false, mostramos resultado real.
+     **********************************************************************/
+    function verificarUbicacion() {
+      if (FORCE_LOCATION_OK) {
+        // Mostrar "En el salón (simulado)" para todas las clases
+        clasesHoy.forEach(clase => {
+          const locationDiv = document.getElementById(`location-${clase.id}`);
+          if (!locationDiv) return;
+          locationDiv.innerHTML = `
+            <p>Estado de ubicación:</p>
+            <span class="location-status-text">
+              <span class="material-icons check-icon">check</span> En el salón (simulado)
+            </span>
+          `;
+        });
+        return;
+      }
+
+      if (!navigator.geolocation) {
+        clasesHoy.forEach(c => {
+          const locationDiv = document.getElementById(`location-${c.id}`);
+          if (locationDiv) locationDiv.innerHTML = `<p style="color: #f56565;">No se pudo obtener ubicación</p>`;
+        });
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const long = position.coords.longitude;
+
+          clasesHoy.forEach(clase => {
+            const lat2 = clase.salon?.ubicacionLat;
+            const lon2 = clase.salon?.ubicacionLong;
+            const locationDiv = document.getElementById(`location-${clase.id}`);
+            if (!locationDiv || lat2 == null || lon2 == null) return;
+
+            const distanciaKm = calcularDistancia(lat, long, lat2, lon2);
+            const enSalon = distanciaKm < 0.05; // ~50 m
+
+            if (enSalon) {
+              locationDiv.innerHTML = `
+                <p>Estado de ubicación:</p>
+                <span class="location-status-text">
+                  <span class="material-icons check-icon">check</span> En el salón
+                </span>
+              `;
+            } else {
+              locationDiv.innerHTML = `
+                <p>Estado de ubicación:</p>
+                <span class="location-status-text" style="color: #f56565;">
+                  <span class="material-icons" style="color: #f56565;">cancel</span>
+                  Fuera del salón (${Math.round(distanciaKm*1000)}m)
+                </span>
+              `;
+            }
+          });
+        },
+        (error) => {
+          console.error('Error geolocalización:', error);
+          clasesHoy.forEach(clase => {
+            const locationDiv = document.getElementById(`location-${clase.id}`);
+            if (locationDiv) locationDiv.innerHTML = `<p style="color: #f56565;">No se pudo obtener ubicación</p>`;
+          });
+        }
+      );
+    }
+
+    function calcularDistancia(lat1, lon1, lat2, lon2) {
+      const toRad = v => v * Math.PI / 180;
+      const R = 6371; // km
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    /**********************************************************************
+     * Registrar asistencia (siempre intenta, no bloquea por ubicación)
+     **********************************************************************/
+    async function registrarAsistencia(cursoId) {
+      const btn = document.getElementById(`btn-${cursoId}`);
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Registrando...';
+      }
+
+      try {
+        // Intentamos obtener ubicación para enviarla al servidor (mejora de info)
+        // Si no se puede obtener, se envía sin coords (el servidor usará la ubicación del salón).
+        let lat = null, lon = null;
+        try {
+          const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 8000 });
+          });
+          lat = position.coords.latitude;
+          lon = position.coords.longitude;
+        } catch (geoErr) {
+          console.warn('No se obtuvo geolocalización, continuando sin coords:', geoErr);
+        }
+
+        const payload = {
+          cursoId,
+          ubicacionLat: lat,
+          ubicacionLong: lon
+        };
+
+        const response = await apiFetch('/asistencia', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+
+        const success = response?.success ?? response?.data?.success ?? false;
+
+        if (success) {
+          // ocultar botón y mostrar registrado
+          const btnEl = document.getElementById(`btn-${cursoId}`);
+          const regEl = document.getElementById(`registered-${cursoId}`);
+          if (btnEl) btnEl.style.display = 'none';
+          if (regEl) regEl.style.display = 'flex';
+
+          // información para el usuario
+          const asistenciaServidor = response?.data?.data?.asistencia ?? response?.data?.asistencia ?? null;
+          const clase = clasesHoy.find(c => c.id === cursoId);
+
+          const horaStr = formatearHora(new Date());
+          const materia = asistenciaServidor?.materia ?? clase?.nombre ?? 'Materia';
+          const salon = asistenciaServidor?.salon ?? `Edificio ${clase?.salon?.edificio ?? '-'} - Aula ${clase?.salon?.aula ?? '-'}`;
+
+          document.getElementById('successDetails').innerHTML = `
+            <p>Hora de registro: <strong>${horaStr}</strong></p>
+            <p>Materia: <strong>${materia}</strong></p>
+            <p>${salon}</p>
+          `;
+          document.getElementById('success-alert').style.display = 'flex';
+
+          setTimeout(() => {
+            document.getElementById('success-alert').style.display = 'none';
+          }, 5000);
+
+        } else {
+          const msg = response?.message ?? response?.data?.message ?? response?.mensaje ?? 'Error al registrar asistencia';
+          mostrarError(msg);
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Registrar Mi Asistencia';
+          }
+        }
+
+      } catch (err) {
+        console.error('Error registrar:', err);
+        mostrarError('Error al registrar asistencia');
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Registrar Mi Asistencia';
+        }
+      }
+    }
+
+    function mostrarError(mensaje) {
+      const el = document.getElementById('errorMessage');
+      el.textContent = mensaje;
+      document.getElementById('error-alert').style.display = 'flex';
+      setTimeout(() => {
+        document.getElementById('error-alert').style.display = 'none';
+      }, 5000);
+    }
+
+    function formatearHora(d) {
+      const hh = String(d.getHours()).padStart(2,'0');
+      const mm = String(d.getMinutes()).padStart(2,'0');
+      return `${hh}:${mm}`;
+    }
+
+    window.addEventListener('load', cargarDatos);
+  </script>
+</body>
+</html>

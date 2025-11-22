@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ITSON - Historial General de Asistencias</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <header class="header">
+      <div class="header-content">
+        <span class="portal-title">ITSON - Portal Alumno</span>
+        <span class="user-name" id="userName">Cargando...</span>
+      </div>
+      <button class="logout-btn" onclick="cerrarSesion()">
+        <span class="material-icons">exit_to_app</span>
+        Cerrar Sesión
+      </button>
+    </header>
+
+    <div class="main-container">
+      <nav class="tabs">
+        <a href="index.html" class="tab">Registrar Asistencia</a>
+        <a href="historial_general.html" class="tab active"
+          >Historial de Asistencias</a
+        >
+      </nav>
+
+      <section class="attendance-summary-grid">
+        <h2 class="section-title">Historial de Asistencias</h2>
+        <p class="section-subtitle">Consulta tus asistencias por materia</p>
+
+        <div id="loading" style="text-align: center; padding: 40px">
+          <p>Cargando historial...</p>
+        </div>
+
+        <div
+          id="errorContainer"
+          style="display: none; text-align: center; padding: 40px"
+        >
+          <span class="material-icons" style="font-size: 64px; color: #fc8181"
+            >error_outline</span
+          >
+          <p id="errorMessage" style="margin-top: 16px; color: #c53030"></p>
+        </div>
+
+        <div
+          class="subject-cards-grid"
+          id="cardsContainer"
+          style="display: none"
+        ></div>
+      </section>
+    </div>
+
+    <script src="auth.js"></script>
+    <script>
+     async function cargarHistorial() {
+    try {
+        const data = await fetchAuth('/alumno/historial-asistencias');
+
+        if (!data || !data.success) {
+            mostrarError(data?.mensaje || "No se pudo obtener el historial");
+            return;
+        }
+
+        const historial = data.data;
+        mostrarHistorial(historial);
+
+    } catch (error) {
+        console.error("Error en cargarHistorial:", error);
+        mostrarError("Error al cargar el historial");
+    }
+}
+      function mostrarHistorial(historial) {
+        const loading = document.getElementById("loading");
+        const cardsContainer = document.getElementById("cardsContainer");
+
+        loading.style.display = "none";
+
+        if (historial.length === 0) {
+          cardsContainer.innerHTML = `
+                    <div style="grid-column: 1/-1; text-align: center; padding: 40px;">
+                        <span class="material-icons" style="font-size: 64px; color: #cbd5e0;">school</span>
+                        <p style="margin-top: 16px; color: #718096;">
+                            No tienes cursos registrados aún
+                        </p>
+                    </div>
+                `;
+          cardsContainer.style.display = "grid";
+          return;
+        }
+
+        cardsContainer.innerHTML = historial
+          .map((curso) => {
+            const porcentaje = curso.porcentajeAsistencia || 0;
+            const totalClases = curso.totalAsistencias + curso.totalFaltas;
+
+            let colorClass = "green";
+            if (porcentaje < 70) colorClass = "red";
+            else if (porcentaje < 85) colorClass = "orange";
+
+            return `
+                    <div class="subject-card">
+                        <h3 class="card-title">${curso.materia}</h3>
+                        <div class="card-detail">
+                            <span class="detail-label">Asistencias:</span>
+                            <span class="detail-value">${
+                              curso.totalAsistencias
+                            } / ${totalClases}</span>
+                        </div>
+                        <div class="card-detail">
+                            <span class="detail-label">Porcentaje:</span>
+                            <span class="detail-value-percentage ${colorClass}">${porcentaje.toFixed(
+              2
+            )}%</span>
+                        </div>
+                        <div class="progress-bar-small">
+                            <div class="progress-fill-small ${colorClass}-fill" style="width: ${porcentaje}%;"></div>
+                        </div>
+                        <a href="historial.html?cursoId=${
+    curso.cursoId
+}" class="details-link">
+    Ver detalles &rarr;
+</a>
+                    </div>
+                `;
+          })
+          .join("");
+
+        cardsContainer.style.display = "grid";
+      }
+
+      function mostrarError(mensaje) {
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("errorMessage").textContent = mensaje;
+        document.getElementById("errorContainer").style.display = "block";
+      }
+
+      window.addEventListener("load", cargarHistorial);
+    </script>
+  </body>
+</html>
