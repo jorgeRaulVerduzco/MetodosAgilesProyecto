@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,9 +12,9 @@
     <header class="header">
         <div class="header-content">
             <span class="portal-title">ITSON - Portal Alumno</span>
-            <span class="user-name">Manuel Perez</span>
+            <span class="user-name" id="userName">Cargando...</span>
         </div>
-        <button class="logout-btn">
+        <button class="logout-btn" onclick="cerrarSesion()">
             <span class="material-icons">exit_to_app</span>
             Cerrar Sesión
         </button>
@@ -23,9 +22,8 @@
 
     <div class="main-container">
         <nav class="tabs">
-            <a href="index.html" class="tab">Mi Horario</a> 
             <a href="index.html" class="tab">Registrar Asistencia</a>
-            <a href="historial.html" class="tab active">Historial de Asistencias</a>
+            <a href="historial_general.html" class="tab active">Historial de Asistencias</a>
         </nav>
 
         <section class="attendance-history">
@@ -34,97 +32,214 @@
 
             <div class="back-link">
                 <span class="material-icons">arrow_back</span>
-                <a href="historial_general.html" class="tab">Volver a todas las materias</a>
+                <a href="historial_general.html">Volver a todas las materias</a>
             </div>
 
-            <h3 class="subject-title">Ingeniería de Software</h3>
-
-            <div class="summary-card">
-                <div class="summary-item">
-                    <span class="label">Total de clases</span>
-                    <span class="value">32</span>
-                </div>
-                <div class="summary-item">
-                    <span class="label green">Asistencias</span>
-                    <span class="value green">30</span>
-                </div>
-                <div class="summary-item">
-                    <span class="label red">Faltas</span>
-                    <span class="value red">2</span>
-                </div>
+            <div id="loading" style="text-align: center; padding: 40px;">
+                <p>Cargando detalle...</p>
             </div>
 
-            <div class="percentage-container">
-                <p class="percentage-label">Porcentaje de asistencia:</p>
-                <div class="progress-bar-wrapper">
-                    <span class="percentage-text">93.75%</span>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: 93.75%;"></div>
-                    </div>
-                </div>
+            <div id="detalleContainer" style="display: none;">
+                <h3 class="subject-title" id="subjectTitle">Cargando...</h3>
+
+                <div class="summary-card" id="summaryCard"></div>
+
+                <h3 class="register-title">Registro de asistencias</h3>
+
+                <table class="attendance-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="detalleAsistencias"></tbody>
+                </table>
             </div>
 
-            <h3 class="register-title">Registro de asistencias</h3>
-
-            <div class="attendance-list">
-
-                <div class="attendance-item">
-                    <div class="status-icon present">
-                        <span class="material-icons">check_circle</span>
-                    </div>
-                    <div class="details">
-                        <p class="date">domingo, 9 de noviembre de 2025</p>
-                        <p class="time">Registrado a las 07:05</p>
-                    </div>
-                    <span class="result present-text">Presente</span>
-                </div>
-
-                <div class="attendance-item">
-                    <div class="status-icon present">
-                        <span class="material-icons">check_circle</span>
-                    </div>
-                    <div class="details">
-                        <p class="date">viernes, 7 de noviembre de 2025</p>
-                        <p class="time">Registrado a las 07:03</p>
-                    </div>
-                    <span class="result present-text">Presente</span>
-                </div>
-
-                <div class="attendance-item">
-                    <div class="status-icon present">
-                        <span class="material-icons">check_circle</span>
-                    </div>
-                    <div class="details">
-                        <p class="date">miércoles, 5 de noviembre de 2025</p>
-                        <p class="time">Registrado a las 07:08</p>
-                    </div>
-                    <span class="result present-text">Presente</span>
-                </div>
-
-                <div class="attendance-item absent">
-                    <div class="status-icon absent-icon">
-                        <span class="material-icons">cancel</span>
-                    </div>
-                    <div class="details">
-                        <p class="date">domingo, 2 de noviembre de 2025</p>
-                        <p class="time"></p>
-                    </div>
-                    <span class="result absent-text">Ausente</span>
-                </div>
-
-                <div class="attendance-item">
-                    <div class="status-icon present">
-                        <span class="material-icons">check_circle</span>
-                    </div>
-                    <div class="details">
-                        <p class="date">viernes, 31 de octubre de 2025</p>
-                        <p class="time">Registrado a las 07:02</p>
-                    </div>
-                    <span class="result present-text">Presente</span>
-                </div>
+            <div id="errorContainer" style="display: none; text-align: center; padding: 40px;">
+                <span class="material-icons" style="font-size: 64px; color: #fc8181;">error_outline</span>
+                <p id="errorMessage" style="margin-top: 16px; color: #c53030;"></p>
             </div>
         </section>
     </div>
-</body>
 
+    <script src="auth.js"></script>
+
+    <script>
+    // Helper: parsear fecha desde varios posibles nombres/formatos
+    function parseDateField(obj) {
+        const raw = obj?.fecha ?? obj?.fechaHora ?? obj?.fecha_hora ?? obj?.createdAt ?? obj?.created_at ?? obj?.date ?? null;
+        if (!raw) return null;
+
+        // Si ya es Date
+        if (raw instanceof Date) return raw;
+
+        // Si es número (timestamp)
+        if (typeof raw === 'number') return new Date(raw);
+
+        // Si es string
+        if (typeof raw === 'string') {
+            // Try ISO / RFC parse
+            const d = new Date(raw);
+            if (!isNaN(d)) return d;
+
+            // Try /Date(123456789)/ format
+            const msMatch = raw.match(/\/Date\((\d+)\)\//);
+            if (msMatch) return new Date(Number(msMatch[1]));
+
+            // If it's numeric string
+            const num = Number(raw);
+            if (!isNaN(num)) return new Date(num);
+        }
+
+        return null;
+    }
+
+    // Formatea fecha con fallback legible
+    function formatDateField(obj) {
+        const d = parseDateField(obj);
+        if (d) return d.toLocaleString("es-MX", { 
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit'
+        });
+        // fallback: mostrar algún campo existente o guión
+        return obj?.fecha ?? obj?.fechaHora ?? obj?.createdAt ?? '—';
+    }
+
+    // ============================
+    // CARGAR DETALLE
+    // ============================
+    async function cargarDetalle() {
+        const usuario = verificarAutenticacion();
+        if (!usuario) return;
+
+        document.getElementById('userName').textContent =
+            `${usuario.nombres} ${usuario.apellidos}`;
+
+        const params = new URLSearchParams(window.location.search);
+        const cursoId = params.get('cursoId');
+
+        if (!cursoId) {
+            mostrarError("No se especificó el curso.");
+            return;
+        }
+
+        try {
+            // RUTA correcta según tus routes: /api/asistencia/curso/:cursoId
+            // fetchAuth agrega el API_BASE (/api) automáticamente
+            const response = await fetchAuth(`/asistencia/curso/${cursoId}`);
+
+            if (!response || !response.success && !Array.isArray(response)) {
+                // si no es success y tampoco es un array, mostrar error
+                mostrarError(response?.message || "No se pudieron cargar los datos.");
+                return;
+            }
+
+            // Aceptamos varias estructuras de respuesta:
+            // 1) response.data = { asistencias: [...], totalAsistencias, ... }
+            // 2) response = { asistencias: [...], ... }  (si fetchAuth devuelve eso)
+            // 3) response.data es directamente el arreglo de asistencias
+            // 4) response es el arreglo
+            let payload = response;
+            if (response.data) payload = response.data;
+
+            // sacar asistencias ya sea como payload.asistencias o payload (si es array)
+            let asistencias = [];
+            if (Array.isArray(payload)) {
+                asistencias = payload;
+            } else if (Array.isArray(payload.asistencias)) {
+                asistencias = payload.asistencias;
+            } else if (Array.isArray(response)) {
+                asistencias = response;
+            }
+
+            // Obtener resumen desde payload si existe, si no calcularlo
+            let resumen = {
+                totalAsistencias: payload?.totalAsistencias ?? payload?.total_presente ?? 0,
+                totalFaltas: payload?.totalFaltas ?? payload?.total_faltas ?? 0,
+                porcentajeAsistencia: payload?.porcentajeAsistencia ?? payload?.porcentaje_asistencia ?? 0
+            };
+
+            // Si no hay totales, calcular a partir del arreglo
+            if (!resumen.totalAsistencias && !resumen.totalFaltas) {
+                const total = asistencias.length;
+                const presentes = asistencias.filter(a => String(a.estado).toLowerCase() === 'presente').length;
+                resumen.totalAsistencias = presentes;
+                resumen.totalFaltas = total - presentes;
+                resumen.porcentajeAsistencia = total > 0 ? parseFloat(((presentes / total) * 100).toFixed(2)) : 0;
+            }
+
+            // Si el backend devuelve nombre de materia en payload, usarlo
+            const nombreCurso = payload?.materia?.nombre ?? payload?.curso?.nombre ?? `Curso ${cursoId}`;
+
+            mostrarDetalle(asistencias, cursoId, resumen, nombreCurso);
+
+        } catch (error) {
+            console.error(error);
+            mostrarError("Error de conexión con el servidor.");
+        }
+    }
+
+    // ============================
+    // MOSTRAR DETALLE COMPLETO
+    // ============================
+    function mostrarDetalle(asistencias, cursoId, resumen, nombreCurso) {
+
+        document.getElementById('loading').style.display = "none";
+        document.getElementById('detalleContainer').style.display = "block";
+
+        // título materia
+        document.getElementById('subjectTitle').textContent = nombreCurso ?? `Curso ${cursoId}`;
+
+        // --- Resumen ---
+        document.getElementById("summaryCard").innerHTML = `
+            <p><strong>Total de clases:</strong> ${asistencias.length}</p>
+            <p><strong>Asistencias:</strong> ${resumen.totalAsistencias}</p>
+            <p><strong>Faltas:</strong> ${resumen.totalFaltas}</p>
+            <p><strong>Porcentaje:</strong> ${resumen.porcentajeAsistencia}%</p>
+        `;
+
+        // --- Tabla ---
+        const tbody = document.getElementById("detalleAsistencias");
+        tbody.innerHTML = "";
+
+        // ordenar por fecha si se puede (más reciente arriba)
+        asistencias.sort((a, b) => {
+            const da = parseDateField(a);
+            const db = parseDateField(b);
+            if (da && db) return db - da;
+            return 0;
+        });
+
+        asistencias.forEach(a => {
+            const tr = document.createElement("tr");
+            const fechaTexto = formatDateField(a);
+            const estadoTxt = (a.estado ?? a.estadoAsistencia ?? '').toString();
+            const estadoUpper = estadoTxt ? estadoTxt.toUpperCase() : '—';
+            const claseEstado = estadoTxt.toLowerCase() === 'presente' ? 'verde' : 'rojo';
+
+            tr.innerHTML = `
+                <td>${fechaTexto}</td>
+                <td class="${claseEstado}">
+                    ${estadoUpper}
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // ============================
+    // MOSTRAR ERROR
+    // ============================
+    function mostrarError(msg) {
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("errorMessage").textContent = msg;
+        document.getElementById("errorContainer").style.display = "block";
+    }
+
+    window.addEventListener("load", cargarDetalle);
+    </script>
+
+</body>
 </html>
