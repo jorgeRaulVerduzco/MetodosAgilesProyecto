@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ITSON - Sistema de Asistencias</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 50px 40px;
+            width: 100%;
+            max-width: 450px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo-container {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .logo::before {
+            content: "🎓";
+            font-size: 50px;
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #718096;
+            font-size: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            color: #2d3748;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            background: #f7fafc;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        .btn-login:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .credentials {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .credentials h3 {
+            color: #2d3748;
+            font-size: 14px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .credentials p {
+            color: #4a5568;
+            font-size: 13px;
+            margin: 6px 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        .alert {
+            padding: 14px 16px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert.error {
+            background: #fed7d7;
+            color: #c53030;
+            border-left: 4px solid #c53030;
+        }
+
+        .alert.success {
+            background: #c6f6d5;
+            color: #22543d;
+            border-left: 4px solid #22543d;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 10px;
+            color: #667eea;
+            font-size: 14px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo-container">
+            <div class="logo"></div>
+            <h1>ITSON</h1>
+            <p class="subtitle">Sistema de Asistencias</p>
+        </div>
+
+        <div id="alert" class="alert"></div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="idItson">ID ITSON</label>
+                <input 
+                    type="text" 
+                    id="idItson" 
+                    placeholder="00000212345"
+                    required
+                    maxlength="11"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="password">Contraseña</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    placeholder="••••••••"
+                    required
+                >
+            </div>
+
+            <button type="submit" class="btn-login" id="btnLogin">
+                Iniciar Sesión
+            </button>
+
+            <div class="loading" id="loading">
+                Validando credenciales...
+            </div>
+        </form>
+
+        <div class="credentials">
+            <h3>Credenciales de prueba:</h3>
+            <p><strong>Alumno:</strong> ID: 00000212345 | Pass: alumno123</p>
+            <p><strong>Maestro:</strong> ID: 00000298765 | Pass: maestro123</p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3002/api';
+
+        const loginForm = document.getElementById('loginForm');
+        const btnLogin = document.getElementById('btnLogin');
+        const loading = document.getElementById('loading');
+        const alert = document.getElementById('alert');
+
+        function showAlert(message, type) {
+            alert.textContent = message;
+            alert.className = `alert ${type}`;
+            alert.style.display = 'block';
+            
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 5000);
+        }
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = document.getElementById('idItson').value.trim();
+            const contrasenia = document.getElementById('password').value;
+
+            if (!id || !contrasenia) {
+                showAlert('Por favor completa todos los campos', 'error');
+                return;
+            }
+
+            btnLogin.disabled = true;
+            loading.classList.add('active');
+
+            try {
+                const response = await fetch(`${API_BASE}/usuario/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ id, contrasenia })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Guardar datos en localStorage
+                    localStorage.setItem('token', data.data.token);
+                    localStorage.setItem('usuario', JSON.stringify(data.data.usuario));
+                    
+                    showAlert('¡Inicio de sesión exitoso!', 'success');
+
+                    // Redirigir según tipo de usuario
+                    setTimeout(() => {
+                        if (data.data.usuario.tipoUsuario === 'alumno') {
+                            window.location.href = 'index.html';
+                        } else if (data.data.usuario.tipoUsuario === 'maestro') {
+                            window.location.href = 'maestro.html';
+                        }
+                    }, 1000);
+                } else {
+                    showAlert(data.mensaje || 'Credenciales incorrectas', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('Error de conexión. Verifica que el servidor esté corriendo en localhost:3002', 'error');
+            } finally {
+                btnLogin.disabled = false;
+                loading.classList.remove('active');
+            }
+        });
+
+        // Verificar si ya hay sesión activa
+        window.addEventListener('load', () => {
+            const token = localStorage.getItem('token');
+            if (token) {
+                const usuario = JSON.parse(localStorage.getItem('usuario'));
+                if (usuario.tipoUsuario === 'alumno') {
+                    window.location.href = 'index.html';
+                } else {
+                    window.location.href = 'maestro.html';
+                }
+            }
+        });
+    </script>
+</body>
+</html>
