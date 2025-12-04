@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ITSON - Historial General de Asistencias</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <header class="header">
+      <div class="header-content">
+        <span class="portal-title">ITSON - Portal Maestro</span>
+        <span class="user-name" id="userName">Cargando...</span>
+      </div>
+      <button class="logout-btn" onclick="cerrarSesion()">
+        <span class="material-icons">exit_to_app</span>
+        Cerrar Sesión
+      </button>
+    </header>
+
+    <div class="main-container">
+      <nav class="tabs">
+        <a href="gestion_cursos.html" class="tab active">Mis cursos</a>
+      </nav>
+
+      <section class="attendance-summary-grid">
+        <h2 class="section-title">Mis cursos</h2>
+        <p class="section-subtitle">Periodo: Agosto - Diciembre 2025</p>
+
+        <div id="loading" style="text-align: center; padding: 40px">
+          <p>Cargando cursos...</p>
+        </div>
+
+        <div
+          id="errorContainer"
+          style="display: none; text-align: center; padding: 40px"
+        >
+          <span class="material-icons" style="font-size: 64px; color: #fc8181"
+            >error_outline</span
+          >
+          <p id="errorMessage" style="margin-top: 16px; color: #c53030"></p>
+        </div>
+
+        <div
+          class="subject-cards-grid"
+          id="cardsContainer"
+          style="display: none"
+        ></div>
+      </section>
+    </div>
+
+    <script src="auth.js"></script>
+    <script>
+      const CURSOS_ENDPOINT = "/maestro/cursos";
+
+      async function cargarCursos() {
+        try {
+          const data = await fetchAuth(CURSOS_ENDPOINT);
+
+          if (!data || !data.success) {
+            mostrarError(data?.mensaje || "No se pudieron obtener los cursos");
+            return;
+          }
+
+          const cursos = data.data || [];
+          mostrarCursos(cursos);
+        } catch (err) {
+          console.error("Error cargando cursos:", err);
+          mostrarError("Error al obtener los cursos");
+        }
+      }
+
+      function mostrarCursos(cursos) {
+        const loading = document.getElementById("loading");
+        const cardsContainer = document.getElementById("cardsContainer");
+        const errorContainer = document.getElementById("errorContainer");
+
+        loading.style.display = "none";
+        errorContainer.style.display = "none";
+
+        if (!Array.isArray(cursos) || cursos.length === 0) {
+          cardsContainer.innerHTML = `
+            <div style="grid-column:1/-1; text-align:center; padding:40px;">
+              <span class="material-icons" style="font-size:64px; color:#cbd5e0;">school</span>
+              <p style="margin-top:16px; color:#718096;">No tienes cursos registrados aún</p>
+            </div>`;
+          cardsContainer.style.display = "grid";
+          return;
+        }
+
+        cardsContainer.innerHTML = cursos
+          .map((curso) => {
+            const materia = curso.materia || curso.nombre || "Sin nombre";
+            const grupo = curso.grupo || curso.grupoNombre || "";
+            const dias =
+              curso.dias || (curso.horario && curso.horario.dias) || "";
+            const horaInicio =
+              curso.horaInicio ||
+              (curso.horario && curso.horario.horaInicio) ||
+              "";
+            const horaFin =
+              curso.horaFin || (curso.horario && curso.horario.horaFin) || "";
+            const edificio =
+              curso.edificio ||
+              (curso.aula && curso.aula.edificio) ||
+              curso.edificioAula ||
+              "";
+            const aula = curso.aula || (curso.aula && curso.aula.numero) || "";
+            const alumnos =
+              curso.alumnosCount ??
+              curso.cantidadAlumnos ??
+              curso.inscritos ??
+              curso.totalAlumnos ??
+              0;
+            const cursoId = curso.id || curso.cursoId || curso._id || "";
+
+            const porcentaje =
+              typeof curso.porcentaje === "number"
+                ? curso.porcentaje
+                : curso.porcentajeAsistencia ?? 0;
+            let colorClass = "green";
+            if (porcentaje < 70) colorClass = "red";
+            else if (porcentaje < 85) colorClass = "orange";
+
+            const horarioTexto =
+              dias ||
+              (horaInicio || horaFin
+                ? `${horaInicio} - ${horaFin}`
+                : "Horario no disponible");
+
+            return `
+              <div class="subject-card">
+                <div>
+                  <h3 class="card-title">${materia}</h3>
+                  <div class="group-label">${grupo}</div>
+
+                  <div class="card-detail"><span class="material-icons">event</span><span class="detail-label">Días:</span><span class="detail-value">${
+                    dias || "-"
+                  }</span></div>
+                  <div class="card-detail"><span class="material-icons">schedule</span><span class="detail-label">Horario:</span><span class="detail-value">${
+                    horaInicio && horaFin
+                      ? `${horaInicio} - ${horaFin}`
+                      : horarioTexto
+                  }</span></div>
+                  <div class="card-detail"><span class="material-icons">place</span><span class="detail-label">Ubicación:</span><span class="detail-value">${edificio}${
+              aula ? ", Aula " + aula : ""
+            }</span></div>
+                  <div class="card-detail"><span class="material-icons">people</span><span class="detail-label">Alumnos:</span><span class="detail-value">${alumnos} alumnos</span></div>
+                </div>
+
+                <div>
+                  <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                    <div class="detail-value-percentage ${colorClass}">${(
+              porcentaje || 0
+            ).toFixed(2)}%</div>
+                    <a class="details-link" href="historial.html?cursoId=${cursoId}">Ver asistencias →</a>
+                  </div>
+
+                  <div class="progress-bar-small">
+                    <div class="progress-fill-small ${colorClass}-fill" style="width: ${Math.max(
+              0,
+              Math.min(100, porcentaje || 0)
+            )}%;"></div>
+                  </div>
+                </div>
+              </div>`;
+          })
+          .join("");
+
+        cardsContainer.style.display = "grid";
+      }
+
+      function mostrarError(mensaje) {
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("errorMessage").textContent = mensaje;
+        document.getElementById("errorContainer").style.display = "block";
+      }
+
+      window.addEventListener("load", cargarCursos);
+    </script>
+  </body>
+</html>

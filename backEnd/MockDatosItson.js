@@ -21,7 +21,7 @@ const UsuarioDAO = require('./daos/UsuarioDAO.js');
 const MateriaDAO = require('./daos/materiaDao.js');
 const HorarioDAO = require('./daos/horarioDao.js');
 const SalonDAO = require('./daos/salonDao.js');
-const CursoDAO = require('./daos/CursoDao.js');
+const CursoDAO = require('./daos/CursoDAO.js');
 const AlumnoDAO = require('./daos/AlumnoDAO.js');
 const AsistenciaDAO = require('./daos/AsistenciaDAO.js');
 

@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ITSON - Historial de Asistencias</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+  </head>
+
+  <body>
+    <header class="header">
+      <div class="header-content">
+        <span class="portal-title">ITSON - Portal Alumno</span>
+        <span class="user-name" id="userName">Cargando...</span>
+      </div>
+      <button class="logout-btn" onclick="cerrarSesion()">
+        <span class="material-icons">exit_to_app</span>
+        Cerrar Sesión
+      </button>
+    </header>
+
+    <div class="main-container">
+      <nav class="tabs">
+        <a href="gestion_cursos.html" class="tab">Mis cursos</a>
+        <a href="consultar_asistencia.html" class="tab active">Asistencias</a>
+      </nav>
+
+      <section class="attendance-history">
+        <div class="back-link">
+          <span class="material-icons">arrow_back</span>
+          <a href="gestion_cursos.html">Volver a mis cursos</a>
+        </div>
+
+        <h2 class="section-title">Base de Datos - Grupo A</h2>
+        <p class="section-subtitle">09:00 - 11:00 | Martes, Jueves</p>
+
+        <button
+          id="exportPdfBtn"
+          class="register-button active-button"
+          style="padding: 10px 14px; font-size: 0.95em; background: #2b6cb0"
+        >
+          Exportar Reporte PDF
+        </button>
+
+        <div
+          id="courseInfo"
+          style="margin-bottom: 12px; color: var(--text-muted)"
+        ></div>
+
+        <div class="current-class-card" style="margin-bottom: 18px">
+          <h4 style="margin: 0 0 12px 0">Filtros</h4>
+          <div
+            style="
+              display: flex;
+              gap: 12px;
+              flex-wrap: wrap;
+              align-items: center;
+            "
+          >
+            <div style="flex: 1; min-width: 220px">
+              <label class="detail-label">Buscar alumno</label>
+              <input
+                id="filterSearch"
+                type="search"
+                placeholder="Nombre o ID"
+                style="
+                  width: 100%;
+                  padding: 10px;
+                  border-radius: 6px;
+                  border: 1px solid var(--border-light);
+                "
+              />
+            </div>
+            <div style="min-width: 150px">
+              <label class="detail-label">Fecha inicio</label>
+              <input
+                id="filterStart"
+                type="date"
+                style="
+                  width: 90%;
+                  padding: 10px;
+                  border-radius: 6px;
+                  border: 1px solid var(--border-light);
+                "
+              />
+            </div>
+            <div style="min-width: 150px">
+              <label class="detail-label">Fecha fin</label>
+              <input
+                id="filterEnd"
+                type="date"
+                style="
+                  width: 90%;
+                  padding: 10px;
+                  border-radius: 6px;
+                  border: 1px solid var(--border-light);
+                "
+              />
+            </div>
+            <div style="margin-left: auto; display: flex; gap: 8px">
+              <button
+                id="applyFiltersBtn"
+                class="register-button active-button"
+                style="padding: 10px 14px; font-size: 0.95em"
+              >
+                Aplicar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="loading" style="text-align: center; padding: 24px">
+          <p>Cargando listado de alumnos y asistencias...</p>
+        </div>
+
+        <div id="detalleContainer" style="display: none">
+          <div class="current-class-card" style="margin-bottom: 14px">
+            <h3 class="subject-title" id="subjectTitle">Cargando...</h3>
+            <p id="subjectSub" class="date-time"></p>
+            <div id="summaryCard" style="margin-top: 10px"></div>
+          </div>
+
+          <div
+            class="attendance-list"
+            style="
+              background: var(--card-bg);
+              border: 1px solid var(--border-light);
+              border-radius: 8px;
+              overflow: hidden;
+            "
+          >
+            <div
+              style="
+                padding: 18px;
+                border-bottom: 1px solid var(--border-light);
+              "
+            >
+              <strong>Registro de Asistencias</strong>
+            </div>
+            <table style="width: 100%; border-collapse: collapse">
+              <thead>
+                <tr>
+                  <th
+                    style="
+                      text-align: left;
+                      padding: 12px;
+                      border-bottom: 1px solid var(--border-light);
+                      width: 12%;
+                    "
+                  >
+                    ID
+                  </th>
+                  <th
+                    style="
+                      text-align: left;
+                      padding: 12px;
+                      border-bottom: 1px solid var(--border-light);
+                    "
+                  >
+                    Nombre
+                  </th>
+                  <th
+                    style="
+                      text-align: center;
+                      padding: 12px;
+                      border-bottom: 1px solid var(--border-light);
+                      width: 12%;
+                    "
+                  >
+                    Asistencias
+                  </th>
+                  <th
+                    style="
+                      text-align: center;
+                      padding: 12px;
+                      border-bottom: 1px solid var(--border-light);
+                      width: 12%;
+                    "
+                  >
+                    Faltas
+                  </th>
+                  <th
+                    style="
+                      text-align: right;
+                      padding: 12px;
+                      border-bottom: 1px solid var(--border-light);
+                      width: 12%;
+                    "
+                  >
+                    Porcentaje
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="studentsTableBody"></tbody>
+            </table>
+          </div>
+
+          <div
+            style="
+              margin-top: 12px;
+              display: flex;
+              gap: 16px;
+              align-items: center;
+            "
+          >
+            <label
+              style="
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                color: var(--text-muted);
+              "
+              ><span
+                style="
+                  display: inline-block;
+                  width: 14px;
+                  height: 14px;
+                  background: #fdecea;
+                  border-radius: 3px;
+                "
+              ></span>
+              Menos del 70% (reprobado por faltas)</label
+            >
+            <label
+              style="
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                color: var(--text-muted);
+              "
+              ><span
+                style="
+                  display: inline-block;
+                  width: 14px;
+                  height: 14px;
+                  background: #fff4e5;
+                  border-radius: 3px;
+                "
+              ></span>
+              70-79% (en riesgo)</label
+            >
+            <label
+              style="
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                color: var(--text-muted);
+              "
+              ><span
+                style="
+                  display: inline-block;
+                  width: 14px;
+                  height: 14px;
+                  background: #e8f9ee;
+                  border-radius: 3px;
+                "
+              ></span>
+              80% o más (cumple)</label
+            >
+          </div>
+        </div>
+
+        <div
+          id="errorContainer"
+          style="display: none; text-align: center; padding: 24px"
+        >
+          <span class="material-icons" style="font-size: 48px; color: #fc8181"
+            >error_outline</span
+          >
+          <p id="errorMessage" style="margin-top: 12px; color: #c53030"></p>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      function parseDateField(obj) {
+        const raw =
+          obj?.fecha ??
+          obj?.fechaHora ??
+          obj?.fecha_hora ??
+          obj?.createdAt ??
+          obj?.created_at ??
+          obj?.date ??
+          null;
+        if (!raw) return null;
+
+        if (raw instanceof Date) return raw;
+        if (typeof raw === "number") return new Date(raw);
+        if (typeof raw === "string") {
+          const d = new Date(raw);
+          if (!isNaN(d)) return d;
+          const msMatch = raw.match(/\/Date\((\d+)\)\//);
+          if (msMatch) return new Date(Number(msMatch[1]));
+          const num = Number(raw);
+          if (!isNaN(num)) return new Date(num);
+        }
+        return null;
+      }
+
+      function formatDateField(obj) {
+        const d = parseDateField(obj);
+        if (d)
+          return d.toLocaleString("es-MX", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+        return obj?.fecha ?? obj?.fechaHora ?? obj?.createdAt ?? "—";
+      }
+
+      async function cargarDetalle() {
+        const usuario = verificarAutenticacion();
+        if (!usuario) return;
+
+        document.getElementById("userName").textContent = `${
+          usuario.nombres || ""
+        } ${usuario.apellidos || ""}`.trim();
+
+        const params = new URLSearchParams(window.location.search);
+        const cursoId = params.get("cursoId");
+
+        if (!cursoId) {
+          mostrarError("No se especificó el curso.");
+          return;
+        }
+
+        try {
+          const response = await fetchAuth(`/asistencia/curso/${cursoId}`);
+
+          if (
+            !response ||
+            (!response.success && !Array.isArray(response) && !response.data)
+          ) {
+            mostrarError(
+              response?.message || "No se pudieron cargar los datos."
+            );
+            return;
+          }
+
+          let payload = response;
+          if (response.data) payload = response.data;
+
+          let asistencias = [];
+          if (Array.isArray(payload)) {
+            asistencias = payload;
+          } else if (Array.isArray(payload.asistencias)) {
+            asistencias = payload.asistencias;
+          } else if (Array.isArray(response)) {
+            asistencias = response;
+          }
+
+          let resumen = {
+            totalAsistencias:
+              payload?.totalAsistencias ?? payload?.total_presente ?? 0,
+            totalFaltas: payload?.totalFaltas ?? payload?.total_faltas ?? 0,
+            porcentajeAsistencia:
+              payload?.porcentajeAsistencia ??
+              payload?.porcentaje_asistencia ??
+              0,
+          };
+
+          if (!resumen.totalAsistencias && !resumen.totalFaltas) {
+            const total = asistencias.length;
+            const presentes = asistencias.filter(
+              (a) => String(a.estado).toLowerCase() === "presente"
+            ).length;
+            resumen.totalAsistencias = presentes;
+            resumen.totalFaltas = total - presentes;
+            resumen.porcentajeAsistencia =
+              total > 0
+                ? parseFloat(((presentes / total) * 100).toFixed(2))
+                : 0;
+          }
+
+          const nombreCurso =
+            payload?.materia?.nombre ??
+            payload?.curso?.nombre ??
+            `Curso ${cursoId}`;
+
+          // guardar datos crudos para re-filtrar en el cliente
+          window.currentAsistencias = asistencias;
+          window.currentCurso = {
+            id: cursoId,
+            nombre: nombreCurso,
+            info: payload,
+          };
+
+          renderStudentsView(window.currentAsistencias, nombreCurso, resumen);
+        } catch (error) {
+          console.error(error);
+          mostrarError("Error de conexión con el servidor.");
+        }
+      }
+
+      // Render vista maestro: agrega por alumno y muestra tabla
+      function renderStudentsView(asistencias, nombreCurso, resumen) {
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("detalleContainer").style.display = "block";
+
+        document.getElementById("subjectTitle").textContent = nombreCurso ?? "";
+        document.getElementById("subjectSub").textContent =
+          window.currentCurso?.info?.grupo ?? "";
+
+        // mostrar resumen rápido
+        const summaryCard = document.getElementById("summaryCard");
+        if (summaryCard) {
+          summaryCard.innerHTML = `
+        <div style="display:flex;gap:18px;flex-wrap:wrap;">
+          <div style="min-width:150px;"><span class="label">Total de registros</span><div class="value">${asistencias.length}</div></div>
+          <div style="min-width:150px;"><span class="label">Asistencias totales</span><div class="value green">${resumen.totalAsistencias}</div></div>
+          <div style="min-width:150px;"><span class="label">Faltas totales</span><div class="value red">${resumen.totalFaltas}</div></div>
+          <div style="min-width:150px;"><span class="label">% promedio</span><div class="value">${resumen.porcentajeAsistencia}%</div></div>
+        </div>
+      `;
+        }
+
+        // Inicial render con filtros vacíos
+        applyFiltersAndRender();
+
+        // eventos de filtros
+        document
+          .getElementById("applyFiltersBtn")
+          .addEventListener("click", applyFiltersAndRender);
+        document
+          .getElementById("filterSearch")
+          .addEventListener("input", () => {
+            /* opcional auto */
+          });
+        document
+          .getElementById("exportPdfBtn")
+          .addEventListener("click", () => {
+            // placeholder: el export real puede implementarse en backend o con jsPDF
+            window.print();
+          });
+      }
+
+      function applyFiltersAndRender() {
+        const start = document.getElementById("filterStart").value;
+        const end = document.getElementById("filterEnd").value;
+        const search = (document.getElementById("filterSearch").value || "")
+          .trim()
+          .toLowerCase();
+
+        const startDate = start ? new Date(start + "T00:00:00") : null;
+        const endDate = end ? new Date(end + "T23:59:59") : null;
+
+        const agg = aggregateByStudent(
+          window.currentAsistencias || [],
+          startDate,
+          endDate
+        );
+
+        // filtrar por search
+        const filtered = agg.filter((s) => {
+          if (!search) return true;
+          return (
+            (s.nombre || "").toLowerCase().includes(search) ||
+            (s.id || "").toLowerCase().includes(search)
+          );
+        });
+
+        renderStudentsTable(filtered);
+      }
+
+      function aggregateByStudent(records, startDate, endDate) {
+        // Si el backend ya devuelve una lista agregada, admite ese formato
+        if (!Array.isArray(records)) return [];
+
+        // Si los elementos ya contienen conteos (presentes/faltas/porcentaje), mapearlos directamente
+        if (
+          records.length > 0 &&
+          (records[0].presentes !== undefined ||
+            records[0].asistencias !== undefined ||
+            records[0].faltas !== undefined ||
+            records[0].porcentaje !== undefined ||
+            records[0].porcentajeAsistencia !== undefined)
+        ) {
+          return records
+            .map((r) => {
+              const presentes =
+                r.presentes ?? r.asistencias ?? r.totalAsistencias ?? 0;
+              const faltas = r.faltas ?? r.totalFaltas ?? 0;
+              const total = presentes + faltas;
+              const porcentaje =
+                r.porcentaje ??
+                r.porcentajeAsistencia ??
+                (total > 0
+                  ? parseFloat(((presentes / total) * 100).toFixed(2))
+                  : 0);
+              return {
+                id: r.id ?? r.matricula ?? r.noControl ?? "",
+                nombre: r.nombre ?? r.nombreAlumno ?? r.fullName ?? "",
+                presentes,
+                faltas,
+                total,
+                porcentaje,
+              };
+            })
+            .sort((a, b) => b.porcentaje - a.porcentaje);
+        }
+
+        const map = new Map();
+        records.forEach((r) => {
+          // intentar obtener fecha y alumno
+          const fecha = parseDateField(r);
+          if (startDate && fecha && fecha < startDate) return;
+          if (endDate && fecha && fecha > endDate) return;
+
+          const alumno =
+            r.alumno ||
+            r.alumnoId ||
+            r.alumno_id ||
+            r.usuario ||
+            r.estudiante ||
+            null;
+          let id = "";
+          let nombre = "";
+          if (alumno) {
+            id =
+              alumno.id ??
+              alumno.matricula ??
+              alumno.noControl ??
+              alumno.numero ??
+              String(alumno);
+            nombre =
+              [alumno.nombres, alumno.apellidos].filter(Boolean).join(" ") ||
+              alumno.nombre ||
+              alumno.fullName ||
+              "";
+          } else {
+            id = (r.idAlumno || r.alumnoId || r.alumno_id || r.id) ?? "";
+            nombre = r.nombreAlumno || r.nombre || r.fullName || "";
+          }
+
+          const key = String(id || nombre).trim();
+          if (!map.has(key))
+            map.set(key, {
+              id: String(id || ""),
+              nombre: nombre || key,
+              presentes: 0,
+              faltas: 0,
+            });
+
+          const entry = map.get(key);
+          const estado = (r.estado ?? r.estadoAsistencia ?? r.presente ?? "")
+            .toString()
+            .toLowerCase();
+          const isPresente =
+            estado === "presente" ||
+            estado === "1" ||
+            estado === "true" ||
+            estado === "p" ||
+            estado === "asistido";
+          if (isPresente) entry.presentes += 1;
+          else entry.faltas += 1;
+        });
+
+        // calcular porcentaje
+        const arr = Array.from(map.values()).map((e) => {
+          const total = e.presentes + e.faltas;
+          const porcentaje =
+            total > 0
+              ? parseFloat(((e.presentes / total) * 100).toFixed(2))
+              : 0;
+          return { ...e, total, porcentaje };
+        });
+
+        // ordenar por porcentaje asc/desc (mejor primero)
+        arr.sort((a, b) => b.porcentaje - a.porcentaje);
+        return arr;
+      }
+
+      function renderStudentsTable(students) {
+        const tbody = document.getElementById("studentsTableBody");
+        tbody.innerHTML = "";
+
+        students.forEach((s) => {
+          const tr = document.createElement("tr");
+          // seleccionar fondo según porcentaje
+          let bg = "";
+          if (s.porcentaje < 70) bg = "background:#fdecea;";
+          else if (s.porcentaje >= 70 && s.porcentaje < 80)
+            bg = "background:#fff4e5;";
+          else bg = "background:transparent;";
+
+          tr.innerHTML = `
+        <td style="padding:12px; border-bottom:1px solid #f0f0f0; ${bg}"><small>${
+            s.id || ""
+          }</small></td>
+        <td style="padding:12px; border-bottom:1px solid #f0f0f0; ${bg}">${
+            s.nombre || ""
+          }</td>
+        <td style="padding:12px; text-align:center; border-bottom:1px solid #f0f0f0; ${bg}"><span class="green">${
+            s.presentes
+          }</span></td>
+        <td style="padding:12px; text-align:center; border-bottom:1px solid #f0f0f0; ${bg}"><span class="red">${
+            s.faltas
+          }</span></td>
+        <td style="padding:12px; text-align:right; border-bottom:1px solid #f0f0f0; ${bg}"><strong style="color:${
+            s.porcentaje < 70
+              ? "#d32f2f"
+              : s.porcentaje < 80
+              ? "#f59e0b"
+              : "#16a34a"
+          }">${s.porcentaje}%</strong></td>
+      `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      function mostrarError(msg) {
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("errorMessage").textContent = msg;
+        document.getElementById("errorContainer").style.display = "block";
+      }
+
+      window.addEventListener("load", cargarDetalle);
+    </script>
+  </body>
+</html>
