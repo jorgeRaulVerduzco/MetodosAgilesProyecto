@@ -50,28 +50,69 @@
           id="cardsContainer"
           style="display: none"
         ></div>
+
+        <div
+          id="sinCursosContainer"
+          style="display: none; text-align: center; padding: 40px"
+        >
+          <span class="material-icons" style="font-size: 64px; color: #cbd5e0"
+            >school</span
+          >
+          <p id="sinCursosMensaje" style="margin-top: 16px; color: #718096; font-size: 1.1em;"></p>
+        </div>
       </section>
     </div>
 
     <script src="auth.js"></script>
     <script>
-      const CURSOS_ENDPOINT = "/maestro/cursos";
+      const usuario = verificarAutenticacion();
+      if (!usuario || usuario.tipoUsuario !== 'maestro') {
+        window.location.href = 'login.html';
+      }
+
+      document.getElementById("userName").textContent = `${usuario.nombres || ""} ${usuario.apellidos || ""}`.trim();
 
       async function cargarCursos() {
         try {
-          const data = await fetchAuth(CURSOS_ENDPOINT);
+          const maestroId = usuario.id;
+          const data = await fetchAuth(`/maestros/${maestroId}/cursos`);
 
           if (!data || !data.success) {
-            mostrarError(data?.mensaje || "No se pudieron obtener los cursos");
+            // Escenario 2: Maestro sin cursos
+            if (data?.message && data.message.includes("No tienes cursos")) {
+              mostrarSinCursos(data.message);
+            } else {
+              mostrarError(data?.message || "No se pudieron obtener los cursos");
+            }
             return;
           }
 
           const cursos = data.data || [];
+          if (cursos.length === 0) {
+            mostrarSinCursos("No tienes cursos asignados en este periodo");
+            return;
+          }
+
           mostrarCursos(cursos);
         } catch (err) {
           console.error("Error cargando cursos:", err);
           mostrarError("Error al obtener los cursos");
         }
+      }
+
+      function mostrarSinCursos(mensaje) {
+        const loading = document.getElementById("loading");
+        const cardsContainer = document.getElementById("cardsContainer");
+        const errorContainer = document.getElementById("errorContainer");
+
+        loading.style.display = "none";
+        errorContainer.style.display = "none";
+        cardsContainer.style.display = "grid";
+        cardsContainer.innerHTML = `
+          <div style="grid-column:1/-1; text-align:center; padding:40px;">
+            <span class="material-icons" style="font-size:64px; color:#cbd5e0;">school</span>
+            <p style="margin-top:16px; color:#718096; font-size:1.1em;">${mensaje}</p>
+          </div>`;
       }
 
       function mostrarCursos(cursos) {
@@ -139,32 +180,22 @@
                   <div class="group-label">${grupo}</div>
 
                   <div class="card-detail"><span class="material-icons">event</span><span class="detail-label">Días:</span><span class="detail-value">${
-                    dias || "-"
+                    curso.horario?.dia || dias || "-"
                   }</span></div>
                   <div class="card-detail"><span class="material-icons">schedule</span><span class="detail-label">Horario:</span><span class="detail-value">${
-                    horaInicio && horaFin
-                      ? `${horaInicio} - ${horaFin}`
+                    curso.horario?.horaInicio && curso.horario?.horaFin
+                      ? `${curso.horario.horaInicio} - ${curso.horario.horaFin}`
                       : horarioTexto
                   }</span></div>
-                  <div class="card-detail"><span class="material-icons">place</span><span class="detail-label">Ubicación:</span><span class="detail-value">${edificio}${
-              aula ? ", Aula " + aula : ""
-            }</span></div>
+                  <div class="card-detail"><span class="material-icons">place</span><span class="detail-label">Ubicación:</span><span class="detail-value">${
+                    curso.salon?.edificio || edificio
+                  }${curso.salon?.aula ? ", Aula " + curso.salon.aula : aula ? ", Aula " + aula : ""}</span></div>
                   <div class="card-detail"><span class="material-icons">people</span><span class="detail-label">Alumnos:</span><span class="detail-value">${alumnos} alumnos</span></div>
                 </div>
 
                 <div>
                   <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
-                    <div class="detail-value-percentage ${colorClass}">${(
-              porcentaje || 0
-            ).toFixed(2)}%</div>
-                    <a class="details-link" href="historial.html?cursoId=${cursoId}">Ver asistencias →</a>
-                  </div>
-
-                  <div class="progress-bar-small">
-                    <div class="progress-fill-small ${colorClass}-fill" style="width: ${Math.max(
-              0,
-              Math.min(100, porcentaje || 0)
-            )}%;"></div>
+                    <a class="details-link" href="consultar_asistencia_maestro.html?cursoId=${cursoId}">Ver asistencias →</a>
                   </div>
                 </div>
               </div>`;

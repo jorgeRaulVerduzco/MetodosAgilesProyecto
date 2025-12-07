@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ITSON - Portal Maestro</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <script src="auth.js"></script>
+    <script>
+      // Redirigir a gestión de cursos
+      const usuario = verificarAutenticacion();
+      if (usuario && usuario.tipoUsuario === 'maestro') {
+        window.location.href = 'gestion_cursos.html';
+      } else if (usuario && usuario.tipoUsuario !== 'maestro') {
+        // Si no es maestro, redirigir según su tipo
+        window.location.href = usuario.tipoUsuario === 'alumno' ? 'index.html' : 'login.html';
+      }
+    </script>
+  </body>
+</html>
+

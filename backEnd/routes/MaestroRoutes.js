@@ -4,8 +4,8 @@ const maestroController = require("../controllers/MaestroController");
 const validateJWT = require("../middleware/validateJWT");
 const router = express.Router();
 
-
-// 👇 ESTA LÍNEA ES CRÍTICA
+// Todas las rutas requieren autenticación
+router.use(validateJWT);
 
 // Obtener cursos del maestro
 router.get("/maestros/:maestroId/cursos", (req, res) => 
@@ -34,6 +34,12 @@ router.post(
 router.put(
   "/maestros/:maestroId/asistencias/:asistenciaId",
   (req, res) => maestroController.modificarAsistencia(req, res)
+);
+
+// Obtener asistencias de un alumno en un curso (para el modal)
+router.get(
+  "/maestros/:maestroId/cursos/:cursoId/alumnos/:alumnoId/asistencias",
+  (req, res) => maestroController.getAsistenciasAlumno(req, res)
 );
 
 module.exports = router;

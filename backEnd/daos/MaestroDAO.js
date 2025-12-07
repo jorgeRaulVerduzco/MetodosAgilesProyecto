@@ -60,6 +60,21 @@ class MaestroDAO {
 
       if (!maestro) return [];
 
+      // Obtener conteo de alumnos para cada curso
+      const cursosConAlumnos = await Promise.all(
+        maestro.cursos.map(async (curso) => {
+          const alumnosCount = await CursoAlumno.count({
+            where: { cursoId: curso.id },
+          });
+
+          return {
+            ...curso.toJSON(),
+            alumnosCount,
+            grupo: curso.grupo || `Grupo ${curso.id}`,
+          };
+        })
+      );
+
       // Ordenar por día y hora
       const diasOrden = {
         Lunes: 1,
@@ -70,14 +85,16 @@ class MaestroDAO {
         Sábado: 6,
       };
 
-      return maestro.cursos.sort((a, b) => {
-        const diaA = diasOrden[a.horario.dia] || 7;
-        const diaB = diasOrden[b.horario.dia] || 7;
+      return cursosConAlumnos.sort((a, b) => {
+        const diaA = diasOrden[a.horario?.dia] || 7;
+        const diaB = diasOrden[b.horario?.dia] || 7;
 
         if (diaA !== diaB) return diaA - diaB;
 
         // Si es el mismo día, ordenar por hora
-        return a.horario.horaInicio.localeCompare(b.horario.horaInicio);
+        return (a.horario?.horaInicio || "").localeCompare(
+          b.horario?.horaInicio || ""
+        );
       });
     } catch (error) {
       throw error;
@@ -144,7 +161,13 @@ class MaestroDAO {
           (a) => a.estado === "ausente"
         ).length;
 
-        const totalClases = alumno.asistencias.length;
+        const totalJustificadas = alumno.asistencias.filter(
+          (a) => a.estado === "justificado"
+        ).length;
+
+        // Escenario 3: Las faltas justificadas no afectan el porcentaje
+        // Solo contamos presentes y ausentes para el cálculo
+        const totalClases = totalAsistencias + totalFaltas;
 
         const porcentajeAsistencia =
           totalClases > 0 ? (totalAsistencias / totalClases) * 100 : 0;
@@ -248,7 +271,9 @@ class MaestroDAO {
         },
         historial: asistencias.map((a) => ({
           id: a.id,
-          fecha: a.fechaHora.toLocaleDateString("es-MX"),
+          fecha: a.fechaHora.toISOString().split('T')[0], // Formato YYYY-MM-DD para el input date
+          fechaHora: a.fechaHora,
+          fechaFormateada: a.fechaHora.toLocaleDateString("es-MX"),
           hora: a.fechaHora.toLocaleTimeString("es-MX", {
             hour: "2-digit",
             minute: "2-digit",
@@ -335,8 +360,12 @@ class MaestroDAO {
         },
       });
 
+      // Si ya existe, actualizarla en lugar de crear una nueva
       if (existente) {
-        throw new Error("Ya existe un registro para esta fecha");
+        existente.estado = estado;
+        existente.validada = true;
+        await existente.save();
+        return existente;
       }
 
       const asistencia = await Asistencia.create({

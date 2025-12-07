@@ -9,13 +9,35 @@ class MaestroController {
       const { maestroId } = req.params;
       const { periodo } = req.query;
 
-      if (!maestroId) return res.status(400).json({ error: "maestroId requerido" });
+      if (!maestroId) {
+        return res.status(400).json({
+          success: false,
+          message: "maestroId requerido",
+        });
+      }
 
       const cursos = await maestroDAO.obtenerCursos(maestroId, periodo || null);
-      return res.json({ cursos });
+
+      // Escenario 2: Maestro sin cursos
+      if (!cursos || cursos.length === 0) {
+        return res.status(200).json({
+          success: true,
+          message: "No tienes cursos asignados en este periodo",
+          data: [],
+        });
+      }
+
+      // Escenario 1: Maestro con cursos activos
+      return res.status(200).json({
+        success: true,
+        data: cursos,
+      });
     } catch (error) {
       console.error("getCursos:", error);
-      return res.status(500).json({ error: "Error interno del servidor" });
+      return res.status(500).json({
+        success: false,
+        message: "Error interno del servidor",
+      });
     }
   }
 
@@ -47,10 +69,17 @@ class MaestroController {
 
       // Según EP06: si no hay asistencias mostrar mensaje específico
       if (!lista || lista.length === 0) {
-        return res.json({ message: "Aún no hay asistencias registradas para este curso", data: [] });
+        return res.status(200).json({
+          success: true,
+          message: "Aún no hay asistencias registradas para este curso",
+          data: [],
+        });
       }
 
-      return res.json({ data: lista });
+      return res.status(200).json({
+        success: true,
+        data: lista,
+      });
     } catch (error) {
       console.error("getAsistenciasPorCurso:", error);
       return res.status(500).json({ error: "Error interno del servidor" });
@@ -96,7 +125,11 @@ class MaestroController {
       };
 
       const asistencia = await maestroDAO.crearAsistenciaManual(datos);
-      return res.status(201).json({ data: asistencia });
+      return res.status(201).json({
+        success: true,
+        message: "Asistencia registrada exitosamente",
+        data: asistencia,
+      });
     } catch (error) {
       console.error("crearAsistenciaManual:", error);
       // errores esperados desde DAO -> 400
@@ -111,20 +144,72 @@ class MaestroController {
       const { nuevoEstado } = req.body;
 
       if (!maestroId || !asistenciaId || !nuevoEstado)
-        return res.status(400).json({ error: "Parámetros faltantes" });
+        return res.status(400).json({ 
+          success: false,
+          error: "Parámetros faltantes" 
+        });
 
       // buscar asistencia para obtener cursoId y verificar propiedad
       const asistencia = await Asistencia.findByPk(asistenciaId);
-      if (!asistencia) return res.status(404).json({ error: "Asistencia no encontrada" });
+      if (!asistencia) return res.status(404).json({ 
+        success: false,
+        error: "Asistencia no encontrada" 
+      });
 
       const pertenece = await maestroDAO.verificarCursoMaestro(asistencia.cursoId, maestroId);
-      if (!pertenece) return res.status(403).json({ error: "No autorizado para modificar esta asistencia" });
+      if (!pertenece) return res.status(403).json({ 
+        success: false,
+        error: "No autorizado para modificar esta asistencia" 
+      });
 
       const updated = await maestroDAO.modificarAsistencia(Number(asistenciaId), nuevoEstado);
-      return res.json({ data: updated });
+      return res.status(200).json({
+        success: true,
+        message: "Asistencia actualizada exitosamente",
+        data: updated,
+      });
     } catch (error) {
       console.error("modificarAsistencia:", error);
-      return res.status(400).json({ error: error.message || "Error al modificar asistencia" });
+      return res.status(400).json({ 
+        success: false,
+        error: error.message || "Error al modificar asistencia" 
+      });
+    }
+  }
+
+  // GET /maestros/:maestroId/cursos/:cursoId/alumnos/:alumnoId/asistencias
+  async getAsistenciasAlumno(req, res) {
+    try {
+      const { maestroId, cursoId, alumnoId } = req.params;
+
+      if (!maestroId || !cursoId || !alumnoId)
+        return res.status(400).json({ 
+          success: false,
+          error: "Parámetros faltantes" 
+        });
+
+      const pertenece = await maestroDAO.verificarCursoMaestro(cursoId, maestroId);
+      if (!pertenece) return res.status(403).json({ 
+        success: false,
+        error: "No autorizado para ver este curso" 
+      });
+
+      const detalle = await maestroDAO.obtenerDetalleAsistenciaAlumno(Number(cursoId), alumnoId);
+      if (!detalle) return res.status(404).json({ 
+        success: false,
+        error: "Alumno o asistencias no encontradas" 
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: detalle,
+      });
+    } catch (error) {
+      console.error("getAsistenciasAlumno:", error);
+      return res.status(500).json({ 
+        success: false,
+        error: "Error interno del servidor" 
+      });
     }
   }
 }

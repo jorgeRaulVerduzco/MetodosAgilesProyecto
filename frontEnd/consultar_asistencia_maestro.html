@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ITSON - Consulta de Asistencias</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <header class="header">
+      <div class="header-content">
+        <span class="portal-title">ITSON - Portal Maestro</span>
+        <span class="user-name" id="userName">Cargando...</span>
+      </div>
+      <button class="logout-btn" onclick="cerrarSesion()">
+        <span class="material-icons">exit_to_app</span>
+        Cerrar Sesión
+      </button>
+    </header>
+
+    <div class="main-container">
+      <nav class="tabs">
+        <a href="gestion_cursos.html" class="tab">Mis cursos</a>
+        <a href="consultar_asistencia_maestro.html" class="tab active">Asistencias</a>
+      </nav>
+
+      <section class="attendance-history">
+        <div class="back-link">
+          <span class="material-icons">arrow_back</span>
+          <a href="gestion_cursos.html">Volver a mis cursos</a>
+        </div>
+
+        <h2 class="section-title" id="cursoTitle">Cargando curso...</h2>
+        <p class="section-subtitle" id="cursoSubtitle"></p>
+
+        <div class="current-class-card" style="margin-bottom: 18px">
+          <h4 style="margin: 0 0 12px 0">Filtros</h4>
+          <div
+            style="
+              display: flex;
+              gap: 12px;
+              flex-wrap: wrap;
+              align-items: center;
+            "
+          >
+            <div style="min-width: 150px">
+              <label class="detail-label">Fecha inicio</label>
+              <input
+                id="filterStart"
+                type="date"
+                style="
+                  width: 100%;
+                  padding: 10px;
+                  border-radius: 6px;
+                  border: 1px solid var(--border-light);
+                "
+              />
+            </div>
+            <div style="min-width: 150px">
+              <label class="detail-label">Fecha fin</label>
+              <input
+                id="filterEnd"
+                type="date"
+                style="
+                  width: 100%;
+                  padding: 10px;
+                  border-radius: 6px;
+                  border: 1px solid var(--border-light);
+                "
+              />
+            </div>
+            <div style="margin-left: auto; display: flex; gap: 8px">
+              <button
+                id="applyFiltersBtn"
+                class="register-button active-button"
+                style="padding: 10px 14px; font-size: 0.95em"
+              >
+                Aplicar Filtros
+              </button>
+              <button
+                id="clearFiltersBtn"
+                class="register-button"
+                style="padding: 10px 14px; font-size: 0.95em; background: #718096"
+              >
+                Limpiar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="loading" style="text-align: center; padding: 24px">
+          <p>Cargando listado de alumnos y asistencias...</p>
+        </div>
+
+        <div id="detalleContainer" style="display: none">
+          <div
+            class="attendance-list"
+            style="
+              background: var(--card-bg);
+              border: 1px solid var(--border-light);
+              border-radius: 8px;
+              overflow: hidden;
+            "
+          >
+            <div
+              style="
+                padding: 18px;
+                border-bottom: 1px solid var(--border-light);
+              "
+            >
+              <strong>Registro de Asistencias</strong>
+            </div>
+            <table style="width: 100%; border-collapse: collapse">
+              <thead>
+                <tr>
+                  <th
+                    style="
+                      text-align: left;
+                      padding: 12px;
+                      border-bottom: 1px solid var(--border-light);
+                      width: 10%;
+                    "
+                  >
+                    ID
+                  </th>
+                  <th
+                    style="
+                      text-align: left;
+                      padding: 12px;
+                      border-bottom: 1px solid var(--border-light);
+                    "
+                  >
+                    Nombre Completo
+                  </th>
+                  <th
+                    style="
+                      text-align: center;
+                      padding: 12px;
+                      border-bottom: 1px solid var(--border-light);
+                      width: 12%;
+                    "
+                  >
+                    Asistencias
+                  </th>
+                  <th
+                    style="
+                      text-align: center;
+                      padding: 12px;
+                      border-bottom: 1px solid var(--border-light);
+                      width: 12%;
+                    "
+                  >
+                    Faltas
+                  </th>
+                  <th
+                    style="
+                      text-align: center;
+                      padding: 12px;
+                      border-bottom: 1px solid var(--border-light);
+                      width: 12%;
+                    "
+                  >
+                    Porcentaje
+                  </th>
+                  <th
+                    style="
+                      text-align: center;
+                      padding: 12px;
+                      border-bottom: 1px solid var(--border-light);
+                      width: 20%;
+                    "
+                  >
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="studentsTableBody"></tbody>
+            </table>
+          </div>
+
+          <div
+            style="
+              margin-top: 12px;
+              display: flex;
+              gap: 16px;
+              align-items: center;
+              flex-wrap: wrap;
+            "
+          >
+            <label
+              style="
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                color: var(--text-muted);
+              "
+              ><span
+                style="
+                  display: inline-block;
+                  width: 14px;
+                  height: 14px;
+                  background: #fdecea;
+                  border-radius: 3px;
+                "
+              ></span>
+              Menos del 70% (reprobado por faltas)</label
+            >
+            <label
+              style="
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                color: var(--text-muted);
+              "
+              ><span
+                style="
+                  display: inline-block;
+                  width: 14px;
+                  height: 14px;
+                  background: #fff4e5;
+                  border-radius: 3px;
+                "
+              ></span>
+              70-84% (en riesgo)</label
+            >
+            <label
+              style="
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                color: var(--text-muted);
+              "
+              ><span
+                style="
+                  display: inline-block;
+                  width: 14px;
+                  height: 14px;
+                  background: #e8f9ee;
+                  border-radius: 3px;
+                "
+              ></span>
+              85% o más (cumple)</label
+            >
+          </div>
+        </div>
+
+        <div
+          id="errorContainer"
+          style="display: none; text-align: center; padding: 24px"
+        >
+          <span class="material-icons" style="font-size: 48px; color: #fc8181"
+            >error_outline</span
+          >
+          <p id="errorMessage" style="margin-top: 12px; color: #c53030"></p>
+        </div>
+      </section>
+    </div>
+
+    <!-- Modal para verificar/modificar asistencia -->
+    <div id="modalAsistencia" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+      <div style="background: white; padding: 24px; border-radius: 8px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;">
+        <h3 style="margin: 0 0 16px 0">Verificar Asistencia</h3>
+        <p id="modalAlumnoNombre" style="margin-bottom: 16px"></p>
+        <div style="margin-bottom: 16px">
+          <label class="detail-label">Fecha</label>
+          <input
+            id="modalFecha"
+            type="date"
+            style="
+              width: 100%;
+              padding: 10px;
+              border-radius: 6px;
+              border: 1px solid var(--border-light);
+            "
+          />
+        </div>
+        <div style="margin-bottom: 16px">
+          <label class="detail-label">Estado</label>
+          <select
+            id="modalEstado"
+            style="
+              width: 100%;
+              padding: 10px;
+              border-radius: 6px;
+              border: 1px solid var(--border-light);
+            "
+          >
+            <option value="presente">Presente</option>
+            <option value="ausente">Ausente</option>
+            <option value="justificado">Justificado</option>
+          </select>
+        </div>
+        <div style="display: flex; gap: 8px; justify-content: flex-end">
+          <button
+            id="modalCancelar"
+            class="register-button"
+            style="padding: 10px 14px; background: #718096"
+          >
+            Cancelar
+          </button>
+          <button
+            id="modalGuardar"
+            class="register-button active-button"
+            style="padding: 10px 14px"
+          >
+            Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script>
+      const usuario = verificarAutenticacion();
+      if (!usuario || usuario.tipoUsuario !== 'maestro') {
+        window.location.href = 'login.html';
+      }
+
+      document.getElementById("userName").textContent = `${usuario.nombres || ""} ${usuario.apellidos || ""}`.trim();
+
+      const params = new URLSearchParams(window.location.search);
+      const cursoId = params.get("cursoId");
+      let cursoInfo = null;
+      let alumnosData = [];
+
+      if (!cursoId) {
+        mostrarError("No se especificó el curso.");
+        return;
+      }
+
+      async function cargarAsistencias() {
+        try {
+          document.getElementById("loading").style.display = "block";
+          document.getElementById("detalleContainer").style.display = "none";
+          document.getElementById("errorContainer").style.display = "none";
+
+          // Obtener información del curso
+          const cursoResponse = await fetchAuth(`/curso/${cursoId}`);
+          if (cursoResponse && cursoResponse.success) {
+            cursoInfo = cursoResponse.data.curso;
+            document.getElementById("cursoTitle").textContent = cursoInfo.materia?.nombre || "Curso";
+            document.getElementById("cursoSubtitle").textContent = 
+              `${cursoInfo.horario?.dia || ""} | ${cursoInfo.horario?.horaInicio || ""} - ${cursoInfo.horario?.horaFin || ""}`;
+          }
+
+          // Obtener asistencias con filtros
+          const fechaInicio = document.getElementById("filterStart").value;
+          const fechaFin = document.getElementById("filterEnd").value;
+          
+          let url = `/maestros/${usuario.id}/cursos/${cursoId}/asistencias`;
+          if (fechaInicio && fechaFin) {
+            url += `?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`;
+          }
+
+          const response = await fetchAuth(url);
+
+          if (!response || !response.success) {
+            // Escenario 4: Sin asistencias registradas
+            if (response?.message && response.message.includes("Aún no hay asistencias")) {
+              mostrarSinAsistencias(response.message);
+            } else {
+              mostrarError(response?.message || "No se pudieron cargar las asistencias.");
+            }
+            return;
+          }
+
+          alumnosData = response.data || [];
+
+          if (alumnosData.length === 0) {
+            mostrarSinAsistencias("Aún no hay asistencias registradas para este curso");
+            return;
+          }
+
+          renderizarTabla();
+        } catch (error) {
+          console.error(error);
+          mostrarError("Error de conexión con el servidor.");
+        }
+      }
+
+      function renderizarTabla() {
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("detalleContainer").style.display = "block";
+        document.getElementById("errorContainer").style.display = "none";
+
+        const tbody = document.getElementById("studentsTableBody");
+        tbody.innerHTML = "";
+
+        alumnosData.forEach((alumno) => {
+          const tr = document.createElement("tr");
+          
+          // Escenario 2: Indicadores visuales por faltas
+          let bg = "";
+          let nivel = "normal";
+          if (alumno.porcentajeAsistencia < 70) {
+            bg = "background:#fdecea;";
+            nivel = "critico";
+          } else if (alumno.porcentajeAsistencia >= 70 && alumno.porcentajeAsistencia < 85) {
+            bg = "background:#fff4e5;";
+            nivel = "alerta";
+          }
+
+          tr.innerHTML = `
+            <td style="padding:12px; border-bottom:1px solid #f0f0f0; ${bg}"><small>${alumno.id || ""}</small></td>
+            <td style="padding:12px; border-bottom:1px solid #f0f0f0; ${bg}">${alumno.nombreCompleto || ""}</td>
+            <td style="padding:12px; text-align:center; border-bottom:1px solid #f0f0f0; ${bg}"><span style="color: #16a34a; font-weight: bold;">${alumno.totalAsistencias || 0}</span></td>
+            <td style="padding:12px; text-align:center; border-bottom:1px solid #f0f0f0; ${bg}"><span style="color: #d32f2f; font-weight: bold;">${alumno.totalFaltas || 0}</span></td>
+            <td style="padding:12px; text-align:center; border-bottom:1px solid #f0f0f0; ${bg}">
+              <strong style="color:${
+                nivel === "critico" ? "#d32f2f" : nivel === "alerta" ? "#f59e0b" : "#16a34a"
+              }">${alumno.porcentajeAsistencia.toFixed(2)}%</strong>
+            </td>
+            <td style="padding:12px; text-align:center; border-bottom:1px solid #f0f0f0; ${bg}">
+              <button 
+                class="register-button active-button" 
+                style="padding: 6px 12px; font-size: 0.85em;"
+                onclick="abrirModalAsistencia('${alumno.id}', '${alumno.nombreCompleto.replace(/'/g, "\\'")}')"
+              >
+                Verificar
+              </button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      function mostrarSinAsistencias(mensaje) {
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("detalleContainer").style.display = "none";
+        document.getElementById("errorContainer").style.display = "block";
+        document.getElementById("errorMessage").textContent = mensaje;
+      }
+
+      function mostrarError(mensaje) {
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("detalleContainer").style.display = "none";
+        document.getElementById("errorMessage").textContent = mensaje;
+        document.getElementById("errorContainer").style.display = "block";
+      }
+
+      // Filtros
+      document.getElementById("applyFiltersBtn").addEventListener("click", cargarAsistencias);
+      document.getElementById("clearFiltersBtn").addEventListener("click", () => {
+        document.getElementById("filterStart").value = "";
+        document.getElementById("filterEnd").value = "";
+        cargarAsistencias();
+      });
+
+      // Modal de asistencia
+      let alumnoActualId = null;
+      let asistenciaActualId = null;
+      let asistenciasAlumno = [];
+
+      async function abrirModalAsistencia(alumnoId, alumnoNombre) {
+        alumnoActualId = alumnoId;
+        asistenciaActualId = null;
+        document.getElementById("modalAlumnoNombre").textContent = `Alumno: ${alumnoNombre}`;
+        document.getElementById("modalFecha").value = new Date().toISOString().split('T')[0];
+        document.getElementById("modalEstado").value = "presente";
+        document.getElementById("modalAsistencia").style.display = "flex";
+
+        // Cargar asistencias del alumno para poder buscar y modificar
+        try {
+          const response = await fetchAuth(`/maestros/${usuario.id}/cursos/${cursoId}/alumnos/${alumnoId}/asistencias`);
+          if (response && response.success && response.data) {
+            asistenciasAlumno = response.data.historial || [];
+          }
+        } catch (error) {
+          console.error("Error al cargar asistencias del alumno:", error);
+          asistenciasAlumno = [];
+        }
+      }
+
+      // Buscar asistencia existente por fecha
+      document.getElementById("modalFecha").addEventListener("change", () => {
+        const fecha = document.getElementById("modalFecha").value;
+        if (!fecha) return;
+
+        // Buscar asistencia que coincida con la fecha seleccionada
+        const asistenciaExistente = asistenciasAlumno.find(a => {
+          if (a.fecha) {
+            const fechaAsistencia = new Date(a.fecha);
+            const fechaSeleccionada = new Date(fecha);
+            return fechaAsistencia.toDateString() === fechaSeleccionada.toDateString();
+          } else if (a.fechaHora) {
+            const fechaAsistencia = new Date(a.fechaHora);
+            const fechaSeleccionada = new Date(fecha);
+            return fechaAsistencia.toDateString() === fechaSeleccionada.toDateString();
+          }
+          return false;
+        });
+
+        if (asistenciaExistente) {
+          // Escenario 2: Corregir registro incorrecto
+          asistenciaActualId = asistenciaExistente.id;
+          document.getElementById("modalEstado").value = asistenciaExistente.estado || "presente";
+        } else {
+          asistenciaActualId = null;
+          document.getElementById("modalEstado").value = "presente";
+        }
+      });
+
+      document.getElementById("modalCancelar").addEventListener("click", () => {
+        document.getElementById("modalAsistencia").style.display = "none";
+      });
+
+      document.getElementById("modalGuardar").addEventListener("click", async () => {
+        const fecha = document.getElementById("modalFecha").value;
+        const estado = document.getElementById("modalEstado").value;
+
+        if (!fecha) {
+          alert("Por favor selecciona una fecha");
+          return;
+        }
+
+        // Escenario 4: Bloqueo de fechas futuras
+        const fechaSeleccionada = new Date(fecha);
+        const ahora = new Date();
+        ahora.setHours(0, 0, 0, 0);
+        
+        if (fechaSeleccionada > ahora) {
+          alert("No se pueden registrar asistencias para fechas futuras");
+          return;
+        }
+
+        try {
+          const fechaHora = new Date(fecha);
+          fechaHora.setHours(12, 0, 0, 0); // Medio día para evitar problemas de zona horaria
+
+          if (asistenciaActualId) {
+            // Modificar asistencia existente
+            const response = await fetchAuth(`/maestros/${usuario.id}/asistencias/${asistenciaActualId}`, {
+              method: 'PUT',
+              body: JSON.stringify({ nuevoEstado: estado }),
+            });
+
+            if (response && response.success) {
+              alert("Asistencia actualizada exitosamente");
+              document.getElementById("modalAsistencia").style.display = "none";
+              cargarAsistencias();
+            } else {
+              alert(response?.error || "Error al actualizar la asistencia");
+            }
+          } else {
+            // Crear nueva asistencia
+            const response = await fetchAuth(`/maestros/${usuario.id}/cursos/${cursoId}/alumnos/${alumnoActualId}/asistencias`, {
+              method: 'POST',
+              body: JSON.stringify({
+                fechaHora: fechaHora.toISOString(),
+                estado: estado,
+              }),
+            });
+
+            if (response && response.success) {
+              alert("Asistencia registrada exitosamente");
+              document.getElementById("modalAsistencia").style.display = "none";
+              cargarAsistencias();
+            } else {
+              alert(response?.error || response?.message || "Error al registrar la asistencia");
+            }
+          }
+        } catch (error) {
+          console.error(error);
+          alert("Error al guardar la asistencia");
+        }
+      });
+
+      // Cargar al iniciar
+      window.addEventListener("load", cargarAsistencias);
+    </script>
+  </body>
+</html>
+
