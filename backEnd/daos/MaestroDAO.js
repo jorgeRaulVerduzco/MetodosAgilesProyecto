@@ -135,7 +135,8 @@ class MaestroDAO {
                       },
                     }),
                 },
-                required: false,
+                required: false, // Importante: left join para incluir alumnos sin asistencias
+                attributes: ["id", "estado", "fechaHora"],
               },
             ],
           },
@@ -157,21 +158,22 @@ class MaestroDAO {
       }
 
       // Procesar datos de cada alumno
-      const alumnosConAsistencias = curso.alumnos.map((alumno) => {
-        // Asegurar que tenemos datos del usuario
-        if (!alumno.usuario) {
-          return null;
-        }
-        const totalAsistencias = alumno.asistencias.filter(
-          (a) => a.estado === "presente"
+      const alumnosConAsistencias = curso.alumnos
+        .filter((alumno) => alumno && alumno.usuario) // Filtrar solo alumnos con usuario válido
+        .map((alumno) => {
+        // Asegurar que asistencias sea un array
+        const asistenciasArray = Array.isArray(alumno.asistencias) ? alumno.asistencias : [];
+        
+        const totalAsistencias = asistenciasArray.filter(
+          (a) => a && a.estado === "presente"
         ).length;
 
-        const totalFaltas = alumno.asistencias.filter(
-          (a) => a.estado === "ausente"
+        const totalFaltas = asistenciasArray.filter(
+          (a) => a && a.estado === "ausente"
         ).length;
 
-        const totalJustificadas = alumno.asistencias.filter(
-          (a) => a.estado === "justificado"
+        const totalJustificadas = asistenciasArray.filter(
+          (a) => a && a.estado === "justificado"
         ).length;
 
         // Escenario 3: Las faltas justificadas no afectan el porcentaje
