@@ -341,12 +341,23 @@
           document.getElementById("errorContainer").style.display = "none";
 
           // Obtener información del curso
-          const cursoResponse = await fetchAuth(`/curso/${cursoId}`);
-          if (cursoResponse && cursoResponse.success) {
-            cursoInfo = cursoResponse.data.curso;
-            document.getElementById("cursoTitle").textContent = cursoInfo.materia?.nombre || "Curso";
-            document.getElementById("cursoSubtitle").textContent = 
-              `${cursoInfo.horario?.dia || ""} | ${cursoInfo.horario?.horaInicio || ""} - ${cursoInfo.horario?.horaFin || ""}`;
+          try {
+            const cursoResponse = await fetchAuth(`/curso/${cursoId}`);
+            if (cursoResponse && cursoResponse.success && cursoResponse.data) {
+              cursoInfo = cursoResponse.data.curso;
+              const materiaNombre = cursoInfo.materia?.nombre || cursoInfo.nombre || "Curso";
+              const dia = cursoInfo.horario?.dia || "";
+              const horaInicio = cursoInfo.horario?.horaInicio || "";
+              const horaFin = cursoInfo.horario?.horaFin || "";
+              
+              document.getElementById("cursoTitle").textContent = materiaNombre;
+              document.getElementById("cursoSubtitle").textContent = 
+                `${dia}${dia && (horaInicio || horaFin) ? " | " : ""}${horaInicio && horaFin ? `${horaInicio} - ${horaFin}` : horaInicio || horaFin || ""}`;
+            }
+          } catch (err) {
+            console.warn("No se pudo cargar info del curso:", err);
+            document.getElementById("cursoTitle").textContent = "Curso";
+            document.getElementById("cursoSubtitle").textContent = "";
           }
 
           // Obtener asistencias con filtros
@@ -360,27 +371,30 @@
 
           const response = await fetchAuth(url);
 
-          if (!response || !response.success) {
-            // Escenario 4: Sin asistencias registradas
-            if (response?.message && response.message.includes("Aún no hay asistencias")) {
-              mostrarSinAsistencias(response.message);
-            } else {
-              mostrarError(response?.message || "No se pudieron cargar las asistencias.");
-            }
+          // Manejar diferentes formatos de respuesta
+          if (!response) {
+            mostrarError("No se recibió respuesta del servidor.");
             return;
           }
 
-          alumnosData = response.data || [];
+          // Si hay un mensaje de "sin asistencias"
+          if (response.message && response.message.includes("Aún no hay asistencias")) {
+            mostrarSinAsistencias(response.message);
+            return;
+          }
 
-          if (alumnosData.length === 0) {
+          // Obtener datos de alumnos
+          alumnosData = response.data || response || [];
+
+          if (!Array.isArray(alumnosData) || alumnosData.length === 0) {
             mostrarSinAsistencias("Aún no hay asistencias registradas para este curso");
             return;
           }
 
           renderizarTabla();
         } catch (error) {
-          console.error(error);
-          mostrarError("Error de conexión con el servidor.");
+          console.error("Error en cargarAsistencias:", error);
+          mostrarError("Error de conexión con el servidor: " + (error.message || "Error desconocido"));
         }
       }
 
