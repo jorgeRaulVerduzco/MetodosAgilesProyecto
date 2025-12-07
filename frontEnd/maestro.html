@@ -13,13 +13,20 @@
   <body>
     <script src="auth.js"></script>
     <script>
-      // Redirigir a gestión de cursos
-      const usuario = verificarAutenticacion();
-      if (usuario && usuario.tipoUsuario === 'maestro') {
-        window.location.href = 'gestion_cursos.html';
-      } else if (usuario && usuario.tipoUsuario !== 'maestro') {
-        // Si no es maestro, redirigir según su tipo
-        window.location.href = usuario.tipoUsuario === 'alumno' ? 'index.html' : 'login.html';
+      // Redirigir inmediatamente a gestión de cursos (esta página es solo un redirect)
+      // Evitar bucles verificando que no estemos ya en la página destino
+      const usuario = JSON.parse(localStorage.getItem('usuario') || 'null');
+      const token = localStorage.getItem('token');
+      
+      if (token && usuario && usuario.tipoUsuario === 'maestro') {
+        // Redirigir solo si no estamos ya en gestion_cursos
+        if (!window.location.href.includes('gestion_cursos.html')) {
+          window.location.replace('gestion_cursos.html');
+        }
+      } else if (token && usuario && usuario.tipoUsuario === 'alumno') {
+        window.location.replace('index.html');
+      } else {
+        window.location.replace('login.html');
       }
     </script>
   </body>

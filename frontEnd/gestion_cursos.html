@@ -67,7 +67,10 @@
     <script>
       const usuario = verificarAutenticacion();
       if (!usuario || usuario.tipoUsuario !== 'maestro') {
-        window.location.href = 'login.html';
+        // Usar replace para evitar bucles en el historial
+        window.location.replace('login.html');
+        // Detener ejecución si no hay usuario válido
+        throw new Error('Usuario no autenticado');
       }
 
       document.getElementById("userName").textContent = `${usuario.nombres || ""} ${usuario.apellidos || ""}`.trim();

@@ -317,7 +317,9 @@
     <script>
       const usuario = verificarAutenticacion();
       if (!usuario || usuario.tipoUsuario !== 'maestro') {
-        window.location.href = 'login.html';
+        window.location.replace('login.html');
+        // Detener ejecución
+        throw new Error('Usuario no autenticado');
       }
 
       document.getElementById("userName").textContent = `${usuario.nombres || ""} ${usuario.apellidos || ""}`.trim();
