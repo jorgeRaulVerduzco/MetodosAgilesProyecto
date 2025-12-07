@@ -67,7 +67,10 @@
     <script>
       const usuario = verificarAutenticacion();
       if (!usuario || usuario.tipoUsuario !== 'maestro') {
-        window.location.href = 'login.html';
+        // Usar replace para evitar bucles en el historial
+        window.location.replace('login.html');
+        // Detener ejecución si no hay usuario válido
+        throw new Error('Usuario no autenticado');
       }
 
       document.getElementById("userName").textContent = `${usuario.nombres || ""} ${usuario.apellidos || ""}`.trim();
@@ -77,26 +80,41 @@
           const maestroId = usuario.id;
           const data = await fetchAuth(`/maestros/${maestroId}/cursos`);
 
-          if (!data || !data.success) {
-            // Escenario 2: Maestro sin cursos
-            if (data?.message && data.message.includes("No tienes cursos")) {
-              mostrarSinCursos(data.message);
-            } else {
-              mostrarError(data?.message || "No se pudieron obtener los cursos");
-            }
+          console.log("Respuesta del servidor:", data);
+
+          if (!data) {
+            mostrarError("No se recibió respuesta del servidor");
             return;
           }
 
-          const cursos = data.data || [];
+          // Manejar diferentes formatos de respuesta
+          let cursos = [];
+          if (data.success && Array.isArray(data.data)) {
+            cursos = data.data;
+          } else if (Array.isArray(data)) {
+            cursos = data;
+          } else if (data.data && Array.isArray(data.data)) {
+            cursos = data.data;
+          } else if (data.cursos && Array.isArray(data.cursos)) {
+            cursos = data.cursos;
+          }
+
+          // Escenario 2: Maestro sin cursos
+          if (data.message && data.message.includes("No tienes cursos")) {
+            mostrarSinCursos(data.message);
+            return;
+          }
+
           if (cursos.length === 0) {
             mostrarSinCursos("No tienes cursos asignados en este periodo");
             return;
           }
 
+          console.log("Cursos a mostrar:", cursos);
           mostrarCursos(cursos);
         } catch (err) {
           console.error("Error cargando cursos:", err);
-          mostrarError("Error al obtener los cursos");
+          mostrarError("Error al obtener los cursos: " + (err.message || "Error desconocido"));
         }
       }
 
@@ -135,62 +153,43 @@
 
         cardsContainer.innerHTML = cursos
           .map((curso) => {
-            const materia = curso.materia || curso.nombre || "Sin nombre";
-            const grupo = curso.grupo || curso.grupoNombre || "";
-            const dias =
-              curso.dias || (curso.horario && curso.horario.dias) || "";
-            const horaInicio =
-              curso.horaInicio ||
-              (curso.horario && curso.horario.horaInicio) ||
-              "";
-            const horaFin =
-              curso.horaFin || (curso.horario && curso.horario.horaFin) || "";
-            const edificio =
-              curso.edificio ||
-              (curso.aula && curso.aula.edificio) ||
-              curso.edificioAula ||
-              "";
-            const aula = curso.aula || (curso.aula && curso.aula.numero) || "";
-            const alumnos =
-              curso.alumnosCount ??
-              curso.cantidadAlumnos ??
-              curso.inscritos ??
-              curso.totalAlumnos ??
-              0;
-            const cursoId = curso.id || curso.cursoId || curso._id || "";
-
-            const porcentaje =
-              typeof curso.porcentaje === "number"
-                ? curso.porcentaje
-                : curso.porcentajeAsistencia ?? 0;
-            let colorClass = "green";
-            if (porcentaje < 70) colorClass = "red";
-            else if (porcentaje < 85) colorClass = "orange";
-
-            const horarioTexto =
-              dias ||
-              (horaInicio || horaFin
-                ? `${horaInicio} - ${horaFin}`
-                : "Horario no disponible");
+            // Acceder correctamente a los datos anidados
+            const materiaNombre = curso.materia?.nombre || curso.nombre || "Sin nombre";
+            const grupo = curso.grupo || "Grupo 01";
+            const dia = curso.horario?.dia || "-";
+            const horaInicio = curso.horario?.horaInicio || "";
+            const horaFin = curso.horario?.horaFin || "";
+            const edificio = curso.salon?.edificio || "";
+            const aula = curso.salon?.aula || "";
+            const alumnos = curso.alumnosCount || 0;
+            const cursoId = curso.id || "";
 
             return `
               <div class="subject-card">
                 <div>
-                  <h3 class="card-title">${materia}</h3>
+                  <h3 class="card-title">${materiaNombre}</h3>
                   <div class="group-label">${grupo}</div>
 
-                  <div class="card-detail"><span class="material-icons">event</span><span class="detail-label">Días:</span><span class="detail-value">${
-                    curso.horario?.dia || dias || "-"
-                  }</span></div>
-                  <div class="card-detail"><span class="material-icons">schedule</span><span class="detail-label">Horario:</span><span class="detail-value">${
-                    curso.horario?.horaInicio && curso.horario?.horaFin
-                      ? `${curso.horario.horaInicio} - ${curso.horario.horaFin}`
-                      : horarioTexto
-                  }</span></div>
-                  <div class="card-detail"><span class="material-icons">place</span><span class="detail-label">Ubicación:</span><span class="detail-value">${
-                    curso.salon?.edificio || edificio
-                  }${curso.salon?.aula ? ", Aula " + curso.salon.aula : aula ? ", Aula " + aula : ""}</span></div>
-                  <div class="card-detail"><span class="material-icons">people</span><span class="detail-label">Alumnos:</span><span class="detail-value">${alumnos} alumnos</span></div>
+                  <div class="card-detail">
+                    <span class="material-icons">event</span>
+                    <span class="detail-label">Días:</span>
+                    <span class="detail-value">${dia}</span>
+                  </div>
+                  <div class="card-detail">
+                    <span class="material-icons">schedule</span>
+                    <span class="detail-label">Horario:</span>
+                    <span class="detail-value">${horaInicio && horaFin ? `${horaInicio} - ${horaFin}` : "No disponible"}</span>
+                  </div>
+                  <div class="card-detail">
+                    <span class="material-icons">place</span>
+                    <span class="detail-label">Ubicación:</span>
+                    <span class="detail-value">${edificio ? `Edificio ${edificio}` : ""}${aula ? `, Aula ${aula}` : ""}</span>
+                  </div>
+                  <div class="card-detail">
+                    <span class="material-icons">people</span>
+                    <span class="detail-label">Alumnos:</span>
+                    <span class="detail-value">${alumnos} alumnos</span>
+                  </div>
                 </div>
 
                 <div>

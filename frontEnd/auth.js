@@ -7,12 +7,25 @@ function verificarAutenticacion() {
     const token = localStorage.getItem('token');
     const usuario = localStorage.getItem('usuario');
     
+    // Si no hay token/usuario y NO estamos ya en login.html, redirigir
     if (!token || !usuario) {
-        window.location.href = 'login.html';
+        // Evitar bucles infinitos: solo redirigir si no estamos ya en login
+        if (!window.location.href.includes('login.html')) {
+            window.location.replace('login.html');
+        }
         return null;
     }
     
-    return JSON.parse(usuario);
+    try {
+        return JSON.parse(usuario);
+    } catch (e) {
+        // Si hay error parseando, limpiar y redirigir solo si no estamos en login
+        localStorage.clear();
+        if (!window.location.href.includes('login.html')) {
+            window.location.replace('login.html');
+        }
+        return null;
+    }
 }
 
 // Obtener headers con token

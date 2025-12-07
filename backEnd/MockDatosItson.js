@@ -25,14 +25,16 @@ const CursoDAO = require('./daos/CursoDAO.js');
 const AlumnoDAO = require('./daos/AlumnoDAO.js');
 const AsistenciaDAO = require('./daos/AsistenciaDAO.js');
 
-const BASE_URL = 'http://localhost:3002/api';
+// Detectar puerto del servidor - intentar 3002 primero, luego 3000
+const PUERTOS_POSIBLES = [3002, 3000];
+let BASE_URL = process.env.API_URL || `http://localhost:${process.env.PORT || 3002}/api`;
 
 // ========================================
 // CONFIGURACIÓN
 // ========================================
 const CONFIG = {
   ALUMNO_PRINCIPAL_ID: '00000212345', // Para tests de módulo alumno
-  MAESTRO_PRINCIPAL_ID: '00000298765', // Para tests de módulo maestro
+  MAESTRO_PRINCIPAL_ID: '00000298765', // Para tests de módulo maestro (Carlos Ramírez)
   BASE_ALUMNO_ID: 300000, // IDs: 00000300001, 00000300002, etc.
   ALUMNOS_POR_CURSO: 20, // 20 alumnos adicionales por curso
   PERIODO: '2025-2',
@@ -76,9 +78,30 @@ const MAESTROS_DATA = [
     id: '00000298765', 
     nombres: 'Carlos', 
     apellidos: 'Ramírez',
-    materia: { codigo: 'SIS-301', nombre: 'Ingeniería de Software', descripcion: 'Desarrollo de software' },
-    horario: { dia: 'Lunes', horaInicio: '07:00:00', horaFin: '09:00:00' },
-    salon: { aula: '201', edificio: '5', ubicacionLat: 27.4825, ubicacionLong: -109.9408, capacidad: 35 },
+    // MAESTRO PRINCIPAL CON MÚLTIPLES CURSOS
+    materias: [
+      { 
+        codigo: 'SIS-301', 
+        nombre: 'Ingeniería de Software', 
+        descripcion: 'Desarrollo de software',
+        horario: { dia: 'Lunes', horaInicio: '07:00:00', horaFin: '09:00:00' },
+        salon: { aula: '201', edificio: '5', ubicacionLat: 27.4825, ubicacionLong: -109.9408, capacidad: 35 },
+      },
+      { 
+        codigo: 'SI-401', 
+        nombre: 'Sistemas de Información', 
+        descripcion: 'Gestión de sistemas de información',
+        horario: { dia: 'Lunes', horaInicio: '13:00:00', horaFin: '15:00:00' },
+        salon: { aula: '202', edificio: '5', ubicacionLat: 27.4825, ubicacionLong: -109.9408, capacidad: 35 },
+      },
+      { 
+        codigo: 'ARQ-301', 
+        nombre: 'Arquitectura de Software', 
+        descripcion: 'Diseño de arquitecturas software',
+        horario: { dia: 'Miércoles', horaInicio: '09:00:00', horaFin: '11:00:00' },
+        salon: { aula: '203', edificio: '5', ubicacionLat: 27.4826, ubicacionLong: -109.9407, capacidad: 30 },
+      },
+    ],
   },
   { 
     id: '00000298766', 
@@ -342,8 +365,20 @@ async function crearDatosITSON() {
 
         cursosCreados.push({ curso, materia, horario, salon, maestro: maestroData });
 
-        // G) Inscribir alumno principal (solo si no es profesor múltiple o es la primera materia)
-        if (!esProfesorMultiple || materiaIdx === 0) {
+        // G) Inscribir alumno principal en TODOS los cursos del maestro principal
+        if (maestroData.id === CONFIG.MAESTRO_PRINCIPAL_ID) {
+          const yaInscritoPrincipal = await CursoAlumno.findOne({ 
+            where: { cursoId: curso.id, alumnoId: CONFIG.ALUMNO_PRINCIPAL_ID } 
+          });
+          
+          if (!yaInscritoPrincipal) {
+            await AlumnoDAO.inscribirEnCurso(CONFIG.ALUMNO_PRINCIPAL_ID, curso.id);
+            curso.numeroAlumnos++;
+            await curso.save();
+            log('      ✅ Alumno principal inscrito', 'green');
+          }
+        } else if (!esProfesorMultiple || materiaIdx === 0) {
+          // Para otros maestros, solo en la primera materia
           const yaInscritoPrincipal = await CursoAlumno.findOne({ 
             where: { cursoId: curso.id, alumnoId: CONFIG.ALUMNO_PRINCIPAL_ID } 
           });
@@ -595,27 +630,49 @@ async function crearHistorialAlumnoPrincipal(cursosCreados) {
 // ========================================
 async function crearAsistenciasAleatorias(alumnoId, cursoId, salon) {
   const ahora = new Date();
-  const fechas = [
-    new Date(ahora.getTime() - 1000 * 60 * 60 * 24 * 14), // hace 2 semanas
-    new Date(ahora.getTime() - 1000 * 60 * 60 * 24 * 7),  // hace 1 semana
-    new Date(ahora.getTime() - 1000 * 60 * 60 * 24 * 3),  // hace 3 días
-  ];
-  const estados = ['presente', 'presente', 'ausente'];
-
+  
+  // Crear más asistencias para tener datos realistas (10-15 asistencias por alumno)
+  const numAsistencias = 10 + Math.floor(Math.random() * 6); // 10-15 asistencias
+  const fechas = [];
+  
+  // Generar fechas en las últimas 8 semanas
+  for (let i = 0; i < numAsistencias; i++) {
+    const semanasAtras = Math.floor(i / 2); // 2 clases por semana
+    const diasAtras = semanasAtras * 7 + (i % 2) * 3; // Lunes y Jueves aproximadamente
+    const fecha = new Date(ahora.getTime() - 1000 * 60 * 60 * 24 * diasAtras);
+    fecha.setHours(10, 0, 0, 0); // Hora de clase
+    fechas.push(fecha);
+  }
+  
+  // Generar estados aleatorios (80-95% de asistencia)
+  const porcentajeAsistencia = 0.80 + (Math.random() * 0.15); // 80-95%
+  
   for (let i = 0; i < fechas.length; i++) {
     const existeAsistencia = await Asistencia.findOne({
-      where: { cursoId, alumnoId, fechaHora: fechas[i] },
+      where: { 
+        cursoId, 
+        alumnoId, 
+        fechaHora: {
+          [Op.between]: [
+            new Date(fechas[i].setHours(0, 0, 0, 0)),
+            new Date(fechas[i].setHours(23, 59, 59, 999))
+          ]
+        }
+      },
     });
 
     if (!existeAsistencia) {
       try {
+        // Determinar estado basado en porcentaje
+        const estado = Math.random() < porcentajeAsistencia ? 'presente' : 'ausente';
+        
         await AsistenciaDAO.crear({
           alumnoId,
           cursoId,
           fechaHora: fechas[i],
-          estado: estados[i],
-          ubicacionLat: estados[i] === 'presente' ? salon.ubicacionLat : null,
-          ubicacionLong: estados[i] === 'presente' ? salon.ubicacionLong : null,
+          estado: estado,
+          ubicacionLat: estado === 'presente' ? salon.ubicacionLat : null,
+          ubicacionLong: estado === 'presente' ? salon.ubicacionLong : null,
         });
       } catch (err) {
         // Ignorar duplicados
@@ -671,18 +728,56 @@ async function ejecutar() {
   try {
     console.clear();
     
-    // Verificar conexión al servidor
-    try {
-      const health = await axios.get(`${BASE_URL}/health`);
-      log('✅ Servidor conectado', 'green');
-    } catch (err) {
-      log('❌ ERROR: No se puede conectar al servidor', 'red');
-      log(`   Asegúrate de que el servidor esté corriendo en ${BASE_URL}`, 'yellow');
-      log('   Ejecuta: npm run dev', 'yellow');
-      process.exit(1);
+    // NOTA: Este script NO necesita el servidor HTTP para funcionar
+    // Solo verifica que esté corriendo como validación
+    // Los datos se crean directamente en la base de datos usando los DAOs
+    
+    log(`🔍 Verificando conexión al servidor (opcional)...`, 'cyan');
+    let servidorConectado = false;
+    let urlFinal = BASE_URL;
+    let ultimoError = null;
+    
+    for (const puerto of PUERTOS_POSIBLES) {
+      const urlPrueba = `http://localhost:${puerto}/api`;
+      const urlHealth = `${urlPrueba}/health`;
+      try {
+        log(`   Probando puerto ${puerto}...`, 'cyan');
+        const response = await axios.get(urlHealth, { 
+          timeout: 3000,
+          validateStatus: function (status) {
+            return status >= 200 && status < 500;
+          }
+        });
+        
+        if (response.status === 200) {
+          log(`✅ Servidor HTTP detectado en puerto ${puerto}`, 'green');
+          urlFinal = urlPrueba;
+          BASE_URL = urlPrueba;
+          servidorConectado = true;
+          break;
+        }
+      } catch (err) {
+        ultimoError = err;
+        // No mostrar error para cada puerto, solo continuar
+        continue;
+      }
+    }
+    
+    if (!servidorConectado) {
+      log(`⚠️  No se detectó el servidor HTTP en los puertos ${PUERTOS_POSIBLES.join(' o ')}`, 'yellow');
+      log(`   Esto es OPCIONAL - el script puede continuar sin el servidor`, 'yellow');
+      log(`   El servidor HTTP solo es necesario para usar la aplicación web`, 'yellow');
+      log(`\n   💡 Si quieres iniciar el servidor (opcional):`, 'cyan');
+      log(`      1. En otra terminal: cd backEnd`, 'yellow');
+      log(`      2. Ejecuta: node app.js`, 'yellow');
+      log(`      3. Espera: "🚀 Servidor corriendo en puerto 3002"`, 'green');
+      log(`\n   ⏳ Continuando con la creación de datos en la base de datos...\n`, 'cyan');
+      // NO salir, continuar con el seed
+    } else {
+      log(`\n`);
     }
 
-    // Ejecutar seed
+    // Ejecutar seed (esto funciona sin el servidor HTTP)
     await crearDatosITSON();
 await limpiarAsistenciasHoraActual()
   } catch (error) {

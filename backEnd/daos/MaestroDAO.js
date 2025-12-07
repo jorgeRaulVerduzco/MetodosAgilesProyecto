@@ -135,7 +135,8 @@ class MaestroDAO {
                       },
                     }),
                 },
-                required: false,
+                required: false, // Importante: left join para incluir alumnos sin asistencias
+                attributes: ["id", "estado", "fechaHora"],
               },
             ],
           },
@@ -147,22 +148,32 @@ class MaestroDAO {
         ],
       });
 
-      if (!curso || !curso.alumnos || curso.alumnos.length === 0) {
+      if (!curso) {
+        return [];
+      }
+
+      // Si no hay alumnos inscritos, devolver array vacío
+      if (!curso.alumnos || curso.alumnos.length === 0) {
         return [];
       }
 
       // Procesar datos de cada alumno
-      const alumnosConAsistencias = curso.alumnos.map((alumno) => {
-        const totalAsistencias = alumno.asistencias.filter(
-          (a) => a.estado === "presente"
+      const alumnosConAsistencias = curso.alumnos
+        .filter((alumno) => alumno && alumno.usuario) // Filtrar solo alumnos con usuario válido
+        .map((alumno) => {
+        // Asegurar que asistencias sea un array
+        const asistenciasArray = Array.isArray(alumno.asistencias) ? alumno.asistencias : [];
+        
+        const totalAsistencias = asistenciasArray.filter(
+          (a) => a && a.estado === "presente"
         ).length;
 
-        const totalFaltas = alumno.asistencias.filter(
-          (a) => a.estado === "ausente"
+        const totalFaltas = asistenciasArray.filter(
+          (a) => a && a.estado === "ausente"
         ).length;
 
-        const totalJustificadas = alumno.asistencias.filter(
-          (a) => a.estado === "justificado"
+        const totalJustificadas = asistenciasArray.filter(
+          (a) => a && a.estado === "justificado"
         ).length;
 
         // Escenario 3: Las faltas justificadas no afectan el porcentaje
@@ -190,7 +201,7 @@ class MaestroDAO {
           porcentajeAsistencia: Math.round(porcentajeAsistencia * 100) / 100,
           nivelAsistencia,
         };
-      });
+      }).filter(alumno => alumno !== null); // Filtrar nulos
 
       // Escenario 1: Ordenar alfabéticamente por apellido
       alumnosConAsistencias.sort((a, b) =>
@@ -207,13 +218,24 @@ class MaestroDAO {
    * HU06.2 - Verificar detalle de asistencia de un alumno
    * Escenario 1: Vista detallada con historial
    */
-  async obtenerDetalleAsistenciaAlumno(cursoId, alumnoId) {
+  async obtenerDetalleAsistenciaAlumno(cursoId, alumnoId, filtros = {}) {
     try {
+      const { fechaInicio, fechaFin } = filtros;
+      
+      const whereClause = {
+        cursoId,
+        alumnoId,
+      };
+      
+      // Agregar filtro de fechas si se proporcionan
+      if (fechaInicio && fechaFin) {
+        whereClause.fechaHora = {
+          [Op.between]: [fechaInicio, fechaFin],
+        };
+      }
+      
       const asistencias = await Asistencia.findAll({
-        where: {
-          cursoId,
-          alumnoId,
-        },
+        where: whereClause,
         include: [
           {
             model: Curso,
@@ -224,6 +246,12 @@ class MaestroDAO {
                 model: Materia,
                 as: "materia",
                 attributes: ["nombre"],
+              },
+              {
+                model: Salon,
+                as: "salon",
+                attributes: ["edificio", "aula"],
+                required: false,
               },
             ],
           },
@@ -269,24 +297,33 @@ class MaestroDAO {
           totalClases,
           porcentajeAsistencia: Math.round(porcentajeAsistencia * 100) / 100,
         },
-        historial: asistencias.map((a) => ({
-          id: a.id,
-          fecha: a.fechaHora.toISOString().split('T')[0], // Formato YYYY-MM-DD para el input date
-          fechaHora: a.fechaHora,
-          fechaFormateada: a.fechaHora.toLocaleDateString("es-MX"),
-          hora: a.fechaHora.toLocaleTimeString("es-MX", {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-          estado: a.estado,
-          ubicacion: a.ubicacionLat
-            ? {
-                lat: a.ubicacionLat,
-                long: a.ubicacionLong,
-              }
-            : null,
-          validada: a.validada,
-        })),
+        historial: asistencias.map((a) => {
+          const salon = a.curso?.salon;
+          const ubicacionTexto = salon 
+            ? `Edificio ${salon.edificio}, Aula ${salon.aula}`
+            : (a.ubicacionLat ? "Ubicación registrada" : null);
+          
+          return {
+            id: a.id,
+            fecha: a.fechaHora.toISOString().split('T')[0], // Formato YYYY-MM-DD para el input date
+            fechaHora: a.fechaHora,
+            fechaFormateada: a.fechaHora.toLocaleDateString("es-MX"),
+            hora: a.fechaHora.toLocaleTimeString("es-MX", {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            }),
+            estado: a.estado,
+            ubicacion: a.ubicacionLat
+              ? {
+                  lat: a.ubicacionLat,
+                  long: a.ubicacionLong,
+                }
+              : null,
+            ubicacionTexto: ubicacionTexto,
+            validada: a.validada,
+          };
+        }),
       };
     } catch (error) {
       throw error;

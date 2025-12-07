@@ -305,7 +305,7 @@
                         if (data.data.usuario.tipoUsuario === 'alumno') {
                             window.location.href = 'index.html';
                         } else if (data.data.usuario.tipoUsuario === 'maestro') {
-                            window.location.href = 'maestro.html';
+                            window.location.href = 'gestion_cursos.html';
                         }
                     }, 1000);
                 } else {
@@ -320,15 +320,26 @@
             }
         });
 
-        // Verificar si ya hay sesión activa
+        // Verificar si ya hay sesión activa (solo si no estamos ya en una página protegida)
         window.addEventListener('load', () => {
             const token = localStorage.getItem('token');
-            if (token) {
-                const usuario = JSON.parse(localStorage.getItem('usuario'));
-                if (usuario.tipoUsuario === 'alumno') {
-                    window.location.href = 'index.html';
-                } else {
-                    window.location.href = 'maestro.html';
+            const usuarioStr = localStorage.getItem('usuario');
+            
+            // Solo redirigir si hay sesión Y estamos en login.html
+            if (token && usuarioStr) {
+                try {
+                    const usuario = JSON.parse(usuarioStr);
+                    // Pequeño delay para evitar bucles
+                    setTimeout(() => {
+                        if (usuario.tipoUsuario === 'alumno') {
+                            window.location.href = 'index.html';
+                        } else if (usuario.tipoUsuario === 'maestro') {
+                            window.location.href = 'gestion_cursos.html';
+                        }
+                    }, 100);
+                } catch (e) {
+                    // Si hay error parseando, limpiar y quedarse en login
+                    localStorage.clear();
                 }
             }
         });

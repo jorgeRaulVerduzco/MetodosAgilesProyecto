@@ -47,19 +47,33 @@ class MaestroController {
       const { maestroId, cursoId } = req.params;
       const { fechaInicio, fechaFin } = req.query;
 
-      if (!maestroId || !cursoId) return res.status(400).json({ error: "maestroId y cursoId requeridos" });
+      if (!maestroId || !cursoId) {
+        return res.status(400).json({ 
+          success: false,
+          error: "maestroId y cursoId requeridos" 
+        });
+      }
 
       // Verificar que el curso pertenece al maestro
       const pertenece = await maestroDAO.verificarCursoMaestro(cursoId, maestroId);
-      if (!pertenece) return res.status(403).json({ error: "No autorizado para ver este curso" });
+      if (!pertenece) {
+        return res.status(403).json({ 
+          success: false,
+          error: "No autorizado para ver este curso" 
+        });
+      }
 
       // Parseo de fechas opcional
       const filtros = {};
       if (fechaInicio && fechaFin) {
         const fi = new Date(fechaInicio);
         const ff = new Date(fechaFin);
-        if (isNaN(fi.getTime()) || isNaN(ff.getTime()))
-          return res.status(400).json({ error: "Formato de fecha inválido. Use YYYY-MM-DD" });
+        if (isNaN(fi.getTime()) || isNaN(ff.getTime())) {
+          return res.status(400).json({ 
+            success: false,
+            error: "Formato de fecha inválido. Use YYYY-MM-DD" 
+          });
+        }
         filtros.fechaInicio = fi;
         // incluir final del día
         filtros.fechaFin = new Date(ff.setHours(23, 59, 59, 999));
@@ -82,7 +96,11 @@ class MaestroController {
       });
     } catch (error) {
       console.error("getAsistenciasPorCurso:", error);
-      return res.status(500).json({ error: "Error interno del servidor" });
+      return res.status(500).json({ 
+        success: false,
+        error: "Error interno del servidor",
+        message: error.message 
+      });
     }
   }
 
@@ -181,24 +199,46 @@ class MaestroController {
   async getAsistenciasAlumno(req, res) {
     try {
       const { maestroId, cursoId, alumnoId } = req.params;
+      const { fechaInicio, fechaFin } = req.query;
 
-      if (!maestroId || !cursoId || !alumnoId)
+      if (!maestroId || !cursoId || !alumnoId) {
         return res.status(400).json({ 
           success: false,
           error: "Parámetros faltantes" 
         });
+      }
 
       const pertenece = await maestroDAO.verificarCursoMaestro(cursoId, maestroId);
-      if (!pertenece) return res.status(403).json({ 
-        success: false,
-        error: "No autorizado para ver este curso" 
-      });
+      if (!pertenece) {
+        return res.status(403).json({ 
+          success: false,
+          error: "No autorizado para ver este curso" 
+        });
+      }
 
-      const detalle = await maestroDAO.obtenerDetalleAsistenciaAlumno(Number(cursoId), alumnoId);
-      if (!detalle) return res.status(404).json({ 
-        success: false,
-        error: "Alumno o asistencias no encontradas" 
-      });
+      // Parseo de fechas opcional
+      const filtros = {};
+      if (fechaInicio && fechaFin) {
+        const fi = new Date(fechaInicio);
+        const ff = new Date(fechaFin);
+        if (isNaN(fi.getTime()) || isNaN(ff.getTime())) {
+          return res.status(400).json({ 
+            success: false,
+            error: "Formato de fecha inválido. Use YYYY-MM-DD" 
+          });
+        }
+        filtros.fechaInicio = fi;
+        // incluir final del día
+        filtros.fechaFin = new Date(ff.setHours(23, 59, 59, 999));
+      }
+
+      const detalle = await maestroDAO.obtenerDetalleAsistenciaAlumno(Number(cursoId), alumnoId, filtros);
+      if (!detalle) {
+        return res.status(404).json({ 
+          success: false,
+          error: "Alumno o asistencias no encontradas" 
+        });
+      }
 
       return res.status(200).json({
         success: true,
@@ -208,7 +248,8 @@ class MaestroController {
       console.error("getAsistenciasAlumno:", error);
       return res.status(500).json({ 
         success: false,
-        error: "Error interno del servidor" 
+        error: "Error interno del servidor",
+        message: error.message 
       });
     }
   }

@@ -260,34 +260,122 @@
       </section>
     </div>
 
-    <!-- Modal para verificar/modificar asistencia -->
-    <div id="modalAsistencia" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-      <div style="background: white; padding: 24px; border-radius: 8px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;">
-        <h3 style="margin: 0 0 16px 0">Verificar Asistencia</h3>
-        <p id="modalAlumnoNombre" style="margin-bottom: 16px"></p>
+    <!-- Modal para vista detallada del alumno -->
+    <div id="modalAsistencia" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; overflow-y: auto; padding: 20px;">
+      <div style="background: white; padding: 24px; border-radius: 8px; max-width: 900px; width: 90%; max-height: 90vh; overflow-y: auto; margin: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+          <h3 style="margin: 0">Detalle de Asistencias</h3>
+          <button
+            id="modalCerrar"
+            class="register-button"
+            style="padding: 8px 16px; background: #718096"
+          >
+            Cerrar
+          </button>
+        </div>
+
+        <!-- ID del Alumno -->
+        <div style="margin-bottom: 20px;">
+          <p style="margin: 0; font-size: 0.9em; color: var(--text-muted);">ID: <strong id="modalAlumnoId"></strong></p>
+        </div>
+
+        <!-- Resumen con tarjetas -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
+          <div style="background: #E3F2FD; padding: 16px; border-radius: 8px; text-align: center;">
+            <p style="margin: 0; font-size: 0.9em; color: var(--text-muted);">Total de Clases</p>
+            <p style="margin: 8px 0 0 0; font-size: 1.8em; font-weight: bold; color: #1976D2;" id="modalTotalClases">0</p>
+          </div>
+          <div style="background: #E8F5E9; padding: 16px; border-radius: 8px; text-align: center;">
+            <p style="margin: 0; font-size: 0.9em; color: var(--text-muted);">Asistencias</p>
+            <p style="margin: 8px 0 0 0; font-size: 1.8em; font-weight: bold; color: #2E7D32;" id="modalAsistencias">0</p>
+          </div>
+          <div style="background: #FFEBEE; padding: 16px; border-radius: 8px; text-align: center;">
+            <p style="margin: 0; font-size: 0.9em; color: var(--text-muted);">Faltas</p>
+            <p style="margin: 8px 0 0 0; font-size: 1.8em; font-weight: bold; color: #C62828;" id="modalFaltas">0</p>
+          </div>
+        </div>
+
+        <!-- Porcentaje y barra de progreso -->
+        <div style="margin-bottom: 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <p style="margin: 0; font-weight: 500;">Porcentaje de asistencia:</p>
+            <p style="margin: 0; font-size: 1.2em; font-weight: bold; color: #2E7D32;" id="modalPorcentaje">0%</p>
+          </div>
+          <div style="width: 100%; height: 24px; background: #E0E0E0; border-radius: 12px; overflow: hidden; position: relative;">
+            <div id="modalProgressBar" style="height: 100%; background: #2E7D32; border-radius: 12px; transition: width 0.5s; width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- Filtros -->
+        <div style="background: #F5F5F5; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+          <h4 style="margin: 0 0 12px 0; font-size: 1em;">Filtros</h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end;">
+            <div>
+              <label class="detail-label" style="display: block; margin-bottom: 4px;">Fecha inicio</label>
+              <input
+                id="modalFilterStart"
+                type="date"
+                style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-light);"
+              />
+            </div>
+            <div>
+              <label class="detail-label" style="display: block; margin-bottom: 4px;">Fecha fin</label>
+              <input
+                id="modalFilterEnd"
+                type="date"
+                style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-light);"
+              />
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button
+                id="modalAplicarFiltros"
+                class="register-button active-button"
+                style="padding: 8px 16px; white-space: nowrap;"
+              >
+                Aplicar
+              </button>
+              <button
+                id="modalLimpiarFiltros"
+                class="register-button"
+                style="padding: 8px 16px; background: #718096; white-space: nowrap;"
+              >
+                Limpiar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Historial Detallado -->
+        <div>
+          <h4 style="margin: 0 0 16px 0; font-size: 1.1em;">Historial Detallado</h4>
+          <div id="modalHistorialContainer" style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border-light); border-radius: 8px; padding: 8px;">
+            <div id="modalHistorialLoading" style="text-align: center; padding: 40px;">
+              <p>Cargando historial...</p>
+            </div>
+            <div id="modalHistorialList" style="display: none;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para editar asistencia individual -->
+    <div id="modalEditarAsistencia" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1001; align-items: center; justify-content: center;">
+      <div style="background: white; padding: 24px; border-radius: 8px; max-width: 400px; width: 90%;">
+        <h3 style="margin: 0 0 16px 0">Editar Asistencia</h3>
         <div style="margin-bottom: 16px">
           <label class="detail-label">Fecha</label>
           <input
-            id="modalFecha"
+            id="editModalFecha"
             type="date"
-            style="
-              width: 100%;
-              padding: 10px;
-              border-radius: 6px;
-              border: 1px solid var(--border-light);
-            "
+            readonly
+            style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-light); background: #f5f5f5;"
           />
         </div>
         <div style="margin-bottom: 16px">
           <label class="detail-label">Estado</label>
           <select
-            id="modalEstado"
-            style="
-              width: 100%;
-              padding: 10px;
-              border-radius: 6px;
-              border: 1px solid var(--border-light);
-            "
+            id="editModalEstado"
+            style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-light);"
           >
             <option value="presente">Presente</option>
             <option value="ausente">Ausente</option>
@@ -296,14 +384,14 @@
         </div>
         <div style="display: flex; gap: 8px; justify-content: flex-end">
           <button
-            id="modalCancelar"
+            id="editModalCancelar"
             class="register-button"
             style="padding: 10px 14px; background: #718096"
           >
             Cancelar
           </button>
           <button
-            id="modalGuardar"
+            id="editModalGuardar"
             class="register-button active-button"
             style="padding: 10px 14px"
           >
@@ -315,262 +403,438 @@
 
     <script src="auth.js"></script>
     <script>
-      const usuario = verificarAutenticacion();
-      if (!usuario || usuario.tipoUsuario !== 'maestro') {
-        window.location.href = 'login.html';
-      }
+      // Inicializar página
+      (function() {
+        const usuario = verificarAutenticacion();
+        if (!usuario || usuario.tipoUsuario !== 'maestro') {
+          window.location.replace('login.html');
+          return;
+        }
 
-      document.getElementById("userName").textContent = `${usuario.nombres || ""} ${usuario.apellidos || ""}`.trim();
+        document.getElementById("userName").textContent = `${usuario.nombres || ""} ${usuario.apellidos || ""}`.trim();
 
-      const params = new URLSearchParams(window.location.search);
-      const cursoId = params.get("cursoId");
-      let cursoInfo = null;
-      let alumnosData = [];
+        const params = new URLSearchParams(window.location.search);
+        const cursoId = params.get("cursoId");
+        let cursoInfo = null;
+        let alumnosData = [];
 
-      if (!cursoId) {
-        mostrarError("No se especificó el curso.");
-        return;
-      }
+        if (!cursoId) {
+          mostrarError("No se especificó el curso.");
+          return;
+        }
 
-      async function cargarAsistencias() {
-        try {
-          document.getElementById("loading").style.display = "block";
-          document.getElementById("detalleContainer").style.display = "none";
+        async function cargarAsistencias() {
+          try {
+            document.getElementById("loading").style.display = "block";
+            document.getElementById("detalleContainer").style.display = "none";
+            document.getElementById("errorContainer").style.display = "none";
+
+            // Obtener información del curso
+            try {
+              const cursoResponse = await fetchAuth(`/curso/${cursoId}`);
+              if (cursoResponse && cursoResponse.success && cursoResponse.data) {
+                cursoInfo = cursoResponse.data.curso;
+                const materiaNombre = cursoInfo.materia?.nombre || cursoInfo.nombre || "Curso";
+                const dia = cursoInfo.horario?.dia || "";
+                const horaInicio = cursoInfo.horario?.horaInicio || "";
+                const horaFin = cursoInfo.horario?.horaFin || "";
+                
+                document.getElementById("cursoTitle").textContent = materiaNombre;
+                document.getElementById("cursoSubtitle").textContent = 
+                  `${dia}${dia && (horaInicio || horaFin) ? " | " : ""}${horaInicio && horaFin ? `${horaInicio} - ${horaFin}` : horaInicio || horaFin || ""}`;
+              }
+            } catch (err) {
+              console.warn("No se pudo cargar info del curso:", err);
+              document.getElementById("cursoTitle").textContent = "Curso";
+              document.getElementById("cursoSubtitle").textContent = "";
+            }
+
+            // Obtener asistencias con filtros
+            const fechaInicio = document.getElementById("filterStart").value;
+            const fechaFin = document.getElementById("filterEnd").value;
+            
+            let url = `/maestros/${usuario.id}/cursos/${cursoId}/asistencias`;
+            if (fechaInicio && fechaFin) {
+              url += `?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`;
+            }
+
+            const response = await fetchAuth(url);
+            console.log("Respuesta del servidor (asistencias):", response);
+
+            // Manejar diferentes formatos de respuesta
+            if (!response) {
+              mostrarError("No se recibió respuesta del servidor.");
+              return;
+            }
+
+            // Si hay un mensaje de "sin asistencias"
+            if (response.message && response.message.includes("Aún no hay asistencias")) {
+              mostrarSinAsistencias(response.message);
+              return;
+            }
+
+            // Obtener datos de alumnos - manejar diferentes formatos
+            if (response.success && Array.isArray(response.data)) {
+              alumnosData = response.data;
+            } else if (Array.isArray(response.data)) {
+              alumnosData = response.data;
+            } else if (Array.isArray(response)) {
+              alumnosData = response;
+            } else {
+              alumnosData = [];
+            }
+
+            console.log("AlumnosData procesado:", alumnosData);
+
+            if (!Array.isArray(alumnosData) || alumnosData.length === 0) {
+              mostrarSinAsistencias("Aún no hay asistencias registradas para este curso");
+              return;
+            }
+
+            renderizarTabla();
+          } catch (error) {
+            console.error("Error en cargarAsistencias:", error);
+            mostrarError("Error de conexión con el servidor: " + (error.message || "Error desconocido"));
+          }
+        }
+
+        function renderizarTabla() {
+          document.getElementById("loading").style.display = "none";
+          document.getElementById("detalleContainer").style.display = "block";
           document.getElementById("errorContainer").style.display = "none";
 
-          // Obtener información del curso
-          const cursoResponse = await fetchAuth(`/curso/${cursoId}`);
-          if (cursoResponse && cursoResponse.success) {
-            cursoInfo = cursoResponse.data.curso;
-            document.getElementById("cursoTitle").textContent = cursoInfo.materia?.nombre || "Curso";
-            document.getElementById("cursoSubtitle").textContent = 
-              `${cursoInfo.horario?.dia || ""} | ${cursoInfo.horario?.horaInicio || ""} - ${cursoInfo.horario?.horaFin || ""}`;
+          const tbody = document.getElementById("studentsTableBody");
+          tbody.innerHTML = "";
+
+          if (!alumnosData || alumnosData.length === 0) {
+            mostrarSinAsistencias("No hay alumnos en este curso");
+            return;
           }
 
-          // Obtener asistencias con filtros
-          const fechaInicio = document.getElementById("filterStart").value;
-          const fechaFin = document.getElementById("filterEnd").value;
-          
-          let url = `/maestros/${usuario.id}/cursos/${cursoId}/asistencias`;
-          if (fechaInicio && fechaFin) {
-            url += `?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`;
-          }
-
-          const response = await fetchAuth(url);
-
-          if (!response || !response.success) {
-            // Escenario 4: Sin asistencias registradas
-            if (response?.message && response.message.includes("Aún no hay asistencias")) {
-              mostrarSinAsistencias(response.message);
-            } else {
-              mostrarError(response?.message || "No se pudieron cargar las asistencias.");
+          alumnosData.forEach((alumno) => {
+            if (!alumno) return; // Saltar elementos nulos
+            
+            const tr = document.createElement("tr");
+            
+            // Escenario 2: Indicadores visuales por faltas
+            let bg = "";
+            let nivel = "normal";
+            const porcentaje = alumno.porcentajeAsistencia || 0;
+            
+            if (porcentaje < 70) {
+              bg = "background:#fdecea;";
+              nivel = "critico";
+            } else if (porcentaje >= 70 && porcentaje < 85) {
+              bg = "background:#fff4e5;";
+              nivel = "alerta";
             }
-            return;
-          }
 
-          alumnosData = response.data || [];
+            const nombreCompleto = alumno.nombreCompleto || `${alumno.apellidos || ""} ${alumno.nombres || ""}`.trim() || "Sin nombre";
+            const alumnoId = alumno.id || "";
+            const totalAsistencias = alumno.totalAsistencias || 0;
+            const totalFaltas = alumno.totalFaltas || 0;
 
-          if (alumnosData.length === 0) {
-            mostrarSinAsistencias("Aún no hay asistencias registradas para este curso");
-            return;
-          }
-
-          renderizarTabla();
-        } catch (error) {
-          console.error(error);
-          mostrarError("Error de conexión con el servidor.");
+            tr.innerHTML = `
+              <td style="padding:12px; border-bottom:1px solid #f0f0f0; ${bg}"><small>${alumnoId}</small></td>
+              <td style="padding:12px; border-bottom:1px solid #f0f0f0; ${bg}">${nombreCompleto}</td>
+              <td style="padding:12px; text-align:center; border-bottom:1px solid #f0f0f0; ${bg}"><span style="color: #16a34a; font-weight: bold;">${totalAsistencias}</span></td>
+              <td style="padding:12px; text-align:center; border-bottom:1px solid #f0f0f0; ${bg}"><span style="color: #d32f2f; font-weight: bold;">${totalFaltas}</span></td>
+              <td style="padding:12px; text-align:center; border-bottom:1px solid #f0f0f0; ${bg}">
+                <strong style="color:${
+                  nivel === "critico" ? "#d32f2f" : nivel === "alerta" ? "#f59e0b" : "#16a34a"
+                }">${porcentaje.toFixed(2)}%</strong>
+              </td>
+              <td style="padding:12px; text-align:center; border-bottom:1px solid #f0f0f0; ${bg}">
+                <button 
+                  class="register-button active-button" 
+                  style="padding: 6px 12px; font-size: 0.85em;"
+                  onclick="window.abrirModalAsistencia('${alumnoId}', '${nombreCompleto.replace(/'/g, "\\'")}')"
+                >
+                  Verificar
+                </button>
+              </td>
+            `;
+            tbody.appendChild(tr);
+          });
         }
-      }
 
-      function renderizarTabla() {
-        document.getElementById("loading").style.display = "none";
-        document.getElementById("detalleContainer").style.display = "block";
-        document.getElementById("errorContainer").style.display = "none";
-
-        const tbody = document.getElementById("studentsTableBody");
-        tbody.innerHTML = "";
-
-        alumnosData.forEach((alumno) => {
-          const tr = document.createElement("tr");
-          
-          // Escenario 2: Indicadores visuales por faltas
-          let bg = "";
-          let nivel = "normal";
-          if (alumno.porcentajeAsistencia < 70) {
-            bg = "background:#fdecea;";
-            nivel = "critico";
-          } else if (alumno.porcentajeAsistencia >= 70 && alumno.porcentajeAsistencia < 85) {
-            bg = "background:#fff4e5;";
-            nivel = "alerta";
-          }
-
-          tr.innerHTML = `
-            <td style="padding:12px; border-bottom:1px solid #f0f0f0; ${bg}"><small>${alumno.id || ""}</small></td>
-            <td style="padding:12px; border-bottom:1px solid #f0f0f0; ${bg}">${alumno.nombreCompleto || ""}</td>
-            <td style="padding:12px; text-align:center; border-bottom:1px solid #f0f0f0; ${bg}"><span style="color: #16a34a; font-weight: bold;">${alumno.totalAsistencias || 0}</span></td>
-            <td style="padding:12px; text-align:center; border-bottom:1px solid #f0f0f0; ${bg}"><span style="color: #d32f2f; font-weight: bold;">${alumno.totalFaltas || 0}</span></td>
-            <td style="padding:12px; text-align:center; border-bottom:1px solid #f0f0f0; ${bg}">
-              <strong style="color:${
-                nivel === "critico" ? "#d32f2f" : nivel === "alerta" ? "#f59e0b" : "#16a34a"
-              }">${alumno.porcentajeAsistencia.toFixed(2)}%</strong>
-            </td>
-            <td style="padding:12px; text-align:center; border-bottom:1px solid #f0f0f0; ${bg}">
-              <button 
-                class="register-button active-button" 
-                style="padding: 6px 12px; font-size: 0.85em;"
-                onclick="abrirModalAsistencia('${alumno.id}', '${alumno.nombreCompleto.replace(/'/g, "\\'")}')"
-              >
-                Verificar
-              </button>
-            </td>
-          `;
-          tbody.appendChild(tr);
-        });
-      }
-
-      function mostrarSinAsistencias(mensaje) {
-        document.getElementById("loading").style.display = "none";
-        document.getElementById("detalleContainer").style.display = "none";
-        document.getElementById("errorContainer").style.display = "block";
-        document.getElementById("errorMessage").textContent = mensaje;
-      }
-
-      function mostrarError(mensaje) {
-        document.getElementById("loading").style.display = "none";
-        document.getElementById("detalleContainer").style.display = "none";
-        document.getElementById("errorMessage").textContent = mensaje;
-        document.getElementById("errorContainer").style.display = "block";
-      }
-
-      // Filtros
-      document.getElementById("applyFiltersBtn").addEventListener("click", cargarAsistencias);
-      document.getElementById("clearFiltersBtn").addEventListener("click", () => {
-        document.getElementById("filterStart").value = "";
-        document.getElementById("filterEnd").value = "";
-        cargarAsistencias();
-      });
-
-      // Modal de asistencia
-      let alumnoActualId = null;
-      let asistenciaActualId = null;
-      let asistenciasAlumno = [];
-
-      async function abrirModalAsistencia(alumnoId, alumnoNombre) {
-        alumnoActualId = alumnoId;
-        asistenciaActualId = null;
-        document.getElementById("modalAlumnoNombre").textContent = `Alumno: ${alumnoNombre}`;
-        document.getElementById("modalFecha").value = new Date().toISOString().split('T')[0];
-        document.getElementById("modalEstado").value = "presente";
-        document.getElementById("modalAsistencia").style.display = "flex";
-
-        // Cargar asistencias del alumno para poder buscar y modificar
-        try {
-          const response = await fetchAuth(`/maestros/${usuario.id}/cursos/${cursoId}/alumnos/${alumnoId}/asistencias`);
-          if (response && response.success && response.data) {
-            asistenciasAlumno = response.data.historial || [];
-          }
-        } catch (error) {
-          console.error("Error al cargar asistencias del alumno:", error);
-          asistenciasAlumno = [];
+        function mostrarSinAsistencias(mensaje) {
+          document.getElementById("loading").style.display = "none";
+          document.getElementById("detalleContainer").style.display = "none";
+          document.getElementById("errorContainer").style.display = "block";
+          document.getElementById("errorMessage").textContent = mensaje;
         }
-      }
 
-      // Buscar asistencia existente por fecha
-      document.getElementById("modalFecha").addEventListener("change", () => {
-        const fecha = document.getElementById("modalFecha").value;
-        if (!fecha) return;
+        function mostrarError(mensaje) {
+          document.getElementById("loading").style.display = "none";
+          document.getElementById("detalleContainer").style.display = "none";
+          document.getElementById("errorMessage").textContent = mensaje;
+          document.getElementById("errorContainer").style.display = "block";
+        }
 
-        // Buscar asistencia que coincida con la fecha seleccionada
-        const asistenciaExistente = asistenciasAlumno.find(a => {
-          if (a.fecha) {
-            const fechaAsistencia = new Date(a.fecha);
-            const fechaSeleccionada = new Date(fecha);
-            return fechaAsistencia.toDateString() === fechaSeleccionada.toDateString();
-          } else if (a.fechaHora) {
-            const fechaAsistencia = new Date(a.fechaHora);
-            const fechaSeleccionada = new Date(fecha);
-            return fechaAsistencia.toDateString() === fechaSeleccionada.toDateString();
-          }
-          return false;
+        // Filtros
+        document.getElementById("applyFiltersBtn").addEventListener("click", cargarAsistencias);
+        document.getElementById("clearFiltersBtn").addEventListener("click", () => {
+          document.getElementById("filterStart").value = "";
+          document.getElementById("filterEnd").value = "";
+          cargarAsistencias();
         });
 
-        if (asistenciaExistente) {
-          // Escenario 2: Corregir registro incorrecto
-          asistenciaActualId = asistenciaExistente.id;
-          document.getElementById("modalEstado").value = asistenciaExistente.estado || "presente";
-        } else {
+        // Modal de asistencia
+        let alumnoActualId = null;
+        let alumnoActualNombre = null;
+        let asistenciaActualId = null;
+        let asistenciasAlumno = [];
+        let historialCompleto = [];
+        let filtrosActivos = { fechaInicio: null, fechaFin: null };
+
+        window.abrirModalAsistencia = async function(alumnoId, alumnoNombre) {
+          alumnoActualId = alumnoId;
+          alumnoActualNombre = alumnoNombre;
           asistenciaActualId = null;
-          document.getElementById("modalEstado").value = "presente";
+          
+          // Mostrar modal
+          document.getElementById("modalAsistencia").style.display = "flex";
+          document.getElementById("modalAlumnoId").textContent = alumnoId;
+          
+          // Limpiar filtros
+          document.getElementById("modalFilterStart").value = "";
+          document.getElementById("modalFilterEnd").value = "";
+          filtrosActivos = { fechaInicio: null, fechaFin: null };
+          
+          // Cargar historial completo del alumno
+          await cargarHistorialAlumno();
+        };
+
+        async function cargarHistorialAlumno() {
+          try {
+            document.getElementById("modalHistorialLoading").style.display = "block";
+            document.getElementById("modalHistorialList").style.display = "none";
+            
+            // Construir URL con filtros si existen
+            let url = `/maestros/${usuario.id}/cursos/${cursoId}/alumnos/${alumnoActualId}/asistencias`;
+            if (filtrosActivos.fechaInicio && filtrosActivos.fechaFin) {
+              url += `?fechaInicio=${filtrosActivos.fechaInicio}&fechaFin=${filtrosActivos.fechaFin}`;
+            }
+            
+            const response = await fetchAuth(url);
+            
+            if (response && response.success && response.data) {
+              historialCompleto = response.data.historial || [];
+              const estadisticas = response.data.estadisticas || {};
+              
+              // Actualizar resumen
+              actualizarResumen(estadisticas);
+              
+              // Mostrar historial
+              mostrarHistorial(historialCompleto);
+            } else {
+              mostrarErrorHistorial("No se pudo cargar el historial del alumno");
+            }
+          } catch (error) {
+            console.error("Error al cargar historial del alumno:", error);
+            mostrarErrorHistorial("Error de conexión con el servidor");
+          }
         }
-      });
 
-      document.getElementById("modalCancelar").addEventListener("click", () => {
-        document.getElementById("modalAsistencia").style.display = "none";
-      });
-
-      document.getElementById("modalGuardar").addEventListener("click", async () => {
-        const fecha = document.getElementById("modalFecha").value;
-        const estado = document.getElementById("modalEstado").value;
-
-        if (!fecha) {
-          alert("Por favor selecciona una fecha");
-          return;
+        function actualizarResumen(estadisticas) {
+          const totalClases = estadisticas.totalClases || historialCompleto.length || 0;
+          const totalAsistencias = estadisticas.totalAsistencias || 0;
+          const totalFaltas = estadisticas.totalFaltas || 0;
+          const porcentaje = estadisticas.porcentajeAsistencia || 0;
+          
+          document.getElementById("modalTotalClases").textContent = totalClases;
+          document.getElementById("modalAsistencias").textContent = totalAsistencias;
+          document.getElementById("modalFaltas").textContent = totalFaltas;
+          document.getElementById("modalPorcentaje").textContent = porcentaje.toFixed(2) + "%";
+          
+          // Actualizar barra de progreso
+          const progressBar = document.getElementById("modalProgressBar");
+          progressBar.style.width = porcentaje + "%";
+          
+          // Cambiar color según porcentaje
+          if (porcentaje < 70) {
+            progressBar.style.background = "#C62828";
+            document.getElementById("modalPorcentaje").style.color = "#C62828";
+          } else if (porcentaje < 85) {
+            progressBar.style.background = "#F57C00";
+            document.getElementById("modalPorcentaje").style.color = "#F57C00";
+          } else {
+            progressBar.style.background = "#2E7D32";
+            document.getElementById("modalPorcentaje").style.color = "#2E7D32";
+          }
         }
 
-        // Escenario 4: Bloqueo de fechas futuras
-        const fechaSeleccionada = new Date(fecha);
-        const ahora = new Date();
-        ahora.setHours(0, 0, 0, 0);
-        
-        if (fechaSeleccionada > ahora) {
-          alert("No se pueden registrar asistencias para fechas futuras");
-          return;
+        function mostrarHistorial(asistencias) {
+          document.getElementById("modalHistorialLoading").style.display = "none";
+          const container = document.getElementById("modalHistorialList");
+          container.style.display = "block";
+          container.innerHTML = "";
+          
+          if (!asistencias || asistencias.length === 0) {
+            container.innerHTML = '<p style="text-align: center; padding: 20px; color: var(--text-muted);">No hay asistencias registradas</p>';
+            return;
+          }
+          
+          // Ordenar por fecha (más reciente primero)
+          const asistenciasOrdenadas = [...asistencias].sort((a, b) => {
+            const fechaA = new Date(a.fechaHora || a.fecha);
+            const fechaB = new Date(b.fechaHora || b.fecha);
+            return fechaB - fechaA;
+          });
+          
+          asistenciasOrdenadas.forEach((asistencia) => {
+            const card = crearTarjetaAsistencia(asistencia);
+            container.appendChild(card);
+          });
         }
 
-        try {
-          const fechaHora = new Date(fecha);
-          fechaHora.setHours(12, 0, 0, 0); // Medio día para evitar problemas de zona horaria
+        function crearTarjetaAsistencia(asistencia) {
+          const estado = asistencia.estado || "ausente";
+          const esPresente = estado === "presente";
+          const esJustificado = estado === "justificado";
+          
+          // Color de fondo según estado
+          let bgColor = esPresente ? "#E8F5E9" : esJustificado ? "#FFF3E0" : "#FFEBEE";
+          let borderColor = esPresente ? "#4CAF50" : esJustificado ? "#FF9800" : "#F44336";
+          let iconColor = esPresente ? "#2E7D32" : esJustificado ? "#F57C00" : "#C62828";
+          let icon = esPresente ? "check_circle" : esJustificado ? "info" : "cancel";
+          
+          // Formatear fecha
+          const fechaObj = new Date(asistencia.fechaHora || asistencia.fecha);
+          const fechaFormateada = fechaObj.toLocaleDateString("es-MX", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric"
+          });
+          
+          // Formatear hora si existe
+          const horaFormateada = asistencia.hora || (asistencia.fechaHora ? fechaObj.toLocaleTimeString("es-MX", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit"
+          }) : "");
+          
+          // Ubicación si existe
+          const ubicacion = asistencia.ubicacionTexto || "";
+          
+          const card = document.createElement("div");
+          card.style.cssText = `
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            margin-bottom: 12px;
+            background: ${bgColor};
+            border-left: 4px solid ${borderColor};
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+          `;
+          card.onmouseover = () => {
+            card.style.transform = "translateX(4px)";
+            card.style.boxShadow = "0 2px 8px rgba(0,0,0,0.1)";
+          };
+          card.onmouseout = () => {
+            card.style.transform = "translateX(0)";
+            card.style.boxShadow = "none";
+          };
+          card.onclick = () => abrirModalEditar(asistencia);
+          
+          card.innerHTML = `
+            <span class="material-icons" style="color: ${iconColor}; font-size: 32px; margin-right: 16px;">${icon}</span>
+            <div style="flex: 1;">
+              <p style="margin: 0; font-weight: 500; text-transform: capitalize;">${fechaFormateada}</p>
+              ${horaFormateada ? `<p style="margin: 4px 0 0 0; font-size: 0.9em; color: var(--text-muted);">Registrado a las ${horaFormateada}</p>` : ""}
+              ${ubicacion ? `<p style="margin: 4px 0 0 0; font-size: 0.9em; color: var(--text-muted);">
+                <span class="material-icons" style="font-size: 16px; vertical-align: middle;">place</span>
+                ${ubicacion}
+              </p>` : ""}
+            </div>
+            <span style="font-weight: bold; font-size: 1.2em; color: ${iconColor};">${esPresente ? "1" : "0"}</span>
+          `;
+          
+          return card;
+        }
 
-          if (asistenciaActualId) {
-            // Modificar asistencia existente
+        function abrirModalEditar(asistencia) {
+          asistenciaActualId = asistencia.id;
+          const fechaObj = new Date(asistencia.fechaHora || asistencia.fecha);
+          document.getElementById("editModalFecha").value = fechaObj.toISOString().split('T')[0];
+          document.getElementById("editModalEstado").value = asistencia.estado || "presente";
+          document.getElementById("modalEditarAsistencia").style.display = "flex";
+        }
+
+        function mostrarErrorHistorial(mensaje) {
+          document.getElementById("modalHistorialLoading").style.display = "none";
+          const container = document.getElementById("modalHistorialList");
+          container.style.display = "block";
+          container.innerHTML = `<p style="text-align: center; padding: 20px; color: #C62828;">${mensaje}</p>`;
+        }
+
+        // Event listeners para el modal principal
+        document.getElementById("modalCerrar").addEventListener("click", () => {
+          document.getElementById("modalAsistencia").style.display = "none";
+        });
+
+        // Filtros del modal
+        document.getElementById("modalAplicarFiltros").addEventListener("click", () => {
+          const fechaInicio = document.getElementById("modalFilterStart").value;
+          const fechaFin = document.getElementById("modalFilterEnd").value;
+          
+          if (fechaInicio && fechaFin) {
+            filtrosActivos = { fechaInicio, fechaFin };
+            cargarHistorialAlumno();
+          } else {
+            alert("Por favor selecciona ambas fechas");
+          }
+        });
+
+        document.getElementById("modalLimpiarFiltros").addEventListener("click", () => {
+          document.getElementById("modalFilterStart").value = "";
+          document.getElementById("modalFilterEnd").value = "";
+          filtrosActivos = { fechaInicio: null, fechaFin: null };
+          cargarHistorialAlumno();
+        });
+
+        // Event listeners para el modal de editar
+        document.getElementById("editModalCancelar").addEventListener("click", () => {
+          document.getElementById("modalEditarAsistencia").style.display = "none";
+        });
+
+        document.getElementById("editModalGuardar").addEventListener("click", async () => {
+          const nuevoEstado = document.getElementById("editModalEstado").value;
+
+          if (!asistenciaActualId) {
+            alert("Error: No se identificó la asistencia a modificar");
+            return;
+          }
+
+          try {
             const response = await fetchAuth(`/maestros/${usuario.id}/asistencias/${asistenciaActualId}`, {
               method: 'PUT',
-              body: JSON.stringify({ nuevoEstado: estado }),
+              body: JSON.stringify({ nuevoEstado: nuevoEstado }),
             });
 
             if (response && response.success) {
               alert("Asistencia actualizada exitosamente");
-              document.getElementById("modalAsistencia").style.display = "none";
-              cargarAsistencias();
+              document.getElementById("modalEditarAsistencia").style.display = "none";
+              
+              // Recargar historial y tabla principal
+              await cargarHistorialAlumno();
+              await cargarAsistencias();
             } else {
               alert(response?.error || "Error al actualizar la asistencia");
             }
-          } else {
-            // Crear nueva asistencia
-            const response = await fetchAuth(`/maestros/${usuario.id}/cursos/${cursoId}/alumnos/${alumnoActualId}/asistencias`, {
-              method: 'POST',
-              body: JSON.stringify({
-                fechaHora: fechaHora.toISOString(),
-                estado: estado,
-              }),
-            });
-
-            if (response && response.success) {
-              alert("Asistencia registrada exitosamente");
-              document.getElementById("modalAsistencia").style.display = "none";
-              cargarAsistencias();
-            } else {
-              alert(response?.error || response?.message || "Error al registrar la asistencia");
-            }
+          } catch (error) {
+            console.error(error);
+            alert("Error al guardar la asistencia");
           }
-        } catch (error) {
-          console.error(error);
-          alert("Error al guardar la asistencia");
-        }
-      });
+        });
 
-      // Cargar al iniciar
-      window.addEventListener("load", cargarAsistencias);
+        // Cargar al iniciar
+        window.addEventListener("load", cargarAsistencias);
+      })();
     </script>
   </body>
 </html>
