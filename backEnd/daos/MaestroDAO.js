@@ -147,12 +147,21 @@ class MaestroDAO {
         ],
       });
 
-      if (!curso || !curso.alumnos || curso.alumnos.length === 0) {
+      if (!curso) {
+        return [];
+      }
+
+      // Si no hay alumnos inscritos, devolver array vacío
+      if (!curso.alumnos || curso.alumnos.length === 0) {
         return [];
       }
 
       // Procesar datos de cada alumno
       const alumnosConAsistencias = curso.alumnos.map((alumno) => {
+        // Asegurar que tenemos datos del usuario
+        if (!alumno.usuario) {
+          return null;
+        }
         const totalAsistencias = alumno.asistencias.filter(
           (a) => a.estado === "presente"
         ).length;
@@ -190,7 +199,7 @@ class MaestroDAO {
           porcentajeAsistencia: Math.round(porcentajeAsistencia * 100) / 100,
           nivelAsistencia,
         };
-      });
+      }).filter(alumno => alumno !== null); // Filtrar nulos
 
       // Escenario 1: Ordenar alfabéticamente por apellido
       alumnosConAsistencias.sort((a, b) =>

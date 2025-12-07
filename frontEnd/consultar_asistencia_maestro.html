@@ -370,6 +370,7 @@
           }
 
           const response = await fetchAuth(url);
+          console.log("Respuesta del servidor (asistencias):", response);
 
           // Manejar diferentes formatos de respuesta
           if (!response) {
@@ -383,8 +384,18 @@
             return;
           }
 
-          // Obtener datos de alumnos
-          alumnosData = response.data || response || [];
+          // Obtener datos de alumnos - manejar diferentes formatos
+          if (response.success && Array.isArray(response.data)) {
+            alumnosData = response.data;
+          } else if (Array.isArray(response.data)) {
+            alumnosData = response.data;
+          } else if (Array.isArray(response)) {
+            alumnosData = response;
+          } else {
+            alumnosData = [];
+          }
+
+          console.log("AlumnosData procesado:", alumnosData);
 
           if (!Array.isArray(alumnosData) || alumnosData.length === 0) {
             mostrarSinAsistencias("Aún no hay asistencias registradas para este curso");
@@ -406,35 +417,49 @@
         const tbody = document.getElementById("studentsTableBody");
         tbody.innerHTML = "";
 
+        if (!alumnosData || alumnosData.length === 0) {
+          mostrarSinAsistencias("No hay alumnos en este curso");
+          return;
+        }
+
         alumnosData.forEach((alumno) => {
+          if (!alumno) return; // Saltar elementos nulos
+          
           const tr = document.createElement("tr");
           
           // Escenario 2: Indicadores visuales por faltas
           let bg = "";
           let nivel = "normal";
-          if (alumno.porcentajeAsistencia < 70) {
+          const porcentaje = alumno.porcentajeAsistencia || 0;
+          
+          if (porcentaje < 70) {
             bg = "background:#fdecea;";
             nivel = "critico";
-          } else if (alumno.porcentajeAsistencia >= 70 && alumno.porcentajeAsistencia < 85) {
+          } else if (porcentaje >= 70 && porcentaje < 85) {
             bg = "background:#fff4e5;";
             nivel = "alerta";
           }
 
+          const nombreCompleto = alumno.nombreCompleto || `${alumno.apellidos || ""} ${alumno.nombres || ""}`.trim() || "Sin nombre";
+          const alumnoId = alumno.id || "";
+          const totalAsistencias = alumno.totalAsistencias || 0;
+          const totalFaltas = alumno.totalFaltas || 0;
+
           tr.innerHTML = `
-            <td style="padding:12px; border-bottom:1px solid #f0f0f0; ${bg}"><small>${alumno.id || ""}</small></td>
-            <td style="padding:12px; border-bottom:1px solid #f0f0f0; ${bg}">${alumno.nombreCompleto || ""}</td>
-            <td style="padding:12px; text-align:center; border-bottom:1px solid #f0f0f0; ${bg}"><span style="color: #16a34a; font-weight: bold;">${alumno.totalAsistencias || 0}</span></td>
-            <td style="padding:12px; text-align:center; border-bottom:1px solid #f0f0f0; ${bg}"><span style="color: #d32f2f; font-weight: bold;">${alumno.totalFaltas || 0}</span></td>
+            <td style="padding:12px; border-bottom:1px solid #f0f0f0; ${bg}"><small>${alumnoId}</small></td>
+            <td style="padding:12px; border-bottom:1px solid #f0f0f0; ${bg}">${nombreCompleto}</td>
+            <td style="padding:12px; text-align:center; border-bottom:1px solid #f0f0f0; ${bg}"><span style="color: #16a34a; font-weight: bold;">${totalAsistencias}</span></td>
+            <td style="padding:12px; text-align:center; border-bottom:1px solid #f0f0f0; ${bg}"><span style="color: #d32f2f; font-weight: bold;">${totalFaltas}</span></td>
             <td style="padding:12px; text-align:center; border-bottom:1px solid #f0f0f0; ${bg}">
               <strong style="color:${
                 nivel === "critico" ? "#d32f2f" : nivel === "alerta" ? "#f59e0b" : "#16a34a"
-              }">${alumno.porcentajeAsistencia.toFixed(2)}%</strong>
+              }">${porcentaje.toFixed(2)}%</strong>
             </td>
             <td style="padding:12px; text-align:center; border-bottom:1px solid #f0f0f0; ${bg}">
               <button 
                 class="register-button active-button" 
                 style="padding: 6px 12px; font-size: 0.85em;"
-                onclick="abrirModalAsistencia('${alumno.id}', '${alumno.nombreCompleto.replace(/'/g, "\\'")}')"
+                onclick="abrirModalAsistencia('${alumnoId}', '${nombreCompleto.replace(/'/g, "\\'")}')"
               >
                 Verificar
               </button>
