@@ -25,7 +25,9 @@ const CursoDAO = require('./daos/CursoDAO.js');
 const AlumnoDAO = require('./daos/AlumnoDAO.js');
 const AsistenciaDAO = require('./daos/AsistenciaDAO.js');
 
-const BASE_URL = 'http://localhost:3002/api';
+// Detectar puerto del servidor - intentar 3002 primero, luego 3000
+const PUERTOS_POSIBLES = [3002, 3000];
+let BASE_URL = process.env.API_URL || `http://localhost:${process.env.PORT || 3002}/api`;
 
 // ========================================
 // CONFIGURACIÓN
@@ -671,18 +673,56 @@ async function ejecutar() {
   try {
     console.clear();
     
-    // Verificar conexión al servidor
-    try {
-      const health = await axios.get(`${BASE_URL}/health`);
-      log('✅ Servidor conectado', 'green');
-    } catch (err) {
-      log('❌ ERROR: No se puede conectar al servidor', 'red');
-      log(`   Asegúrate de que el servidor esté corriendo en ${BASE_URL}`, 'yellow');
-      log('   Ejecuta: npm run dev', 'yellow');
-      process.exit(1);
+    // NOTA: Este script NO necesita el servidor HTTP para funcionar
+    // Solo verifica que esté corriendo como validación
+    // Los datos se crean directamente en la base de datos usando los DAOs
+    
+    log(`🔍 Verificando conexión al servidor (opcional)...`, 'cyan');
+    let servidorConectado = false;
+    let urlFinal = BASE_URL;
+    let ultimoError = null;
+    
+    for (const puerto of PUERTOS_POSIBLES) {
+      const urlPrueba = `http://localhost:${puerto}/api`;
+      const urlHealth = `${urlPrueba}/health`;
+      try {
+        log(`   Probando puerto ${puerto}...`, 'cyan');
+        const response = await axios.get(urlHealth, { 
+          timeout: 3000,
+          validateStatus: function (status) {
+            return status >= 200 && status < 500;
+          }
+        });
+        
+        if (response.status === 200) {
+          log(`✅ Servidor HTTP detectado en puerto ${puerto}`, 'green');
+          urlFinal = urlPrueba;
+          BASE_URL = urlPrueba;
+          servidorConectado = true;
+          break;
+        }
+      } catch (err) {
+        ultimoError = err;
+        // No mostrar error para cada puerto, solo continuar
+        continue;
+      }
+    }
+    
+    if (!servidorConectado) {
+      log(`⚠️  No se detectó el servidor HTTP en los puertos ${PUERTOS_POSIBLES.join(' o ')}`, 'yellow');
+      log(`   Esto es OPCIONAL - el script puede continuar sin el servidor`, 'yellow');
+      log(`   El servidor HTTP solo es necesario para usar la aplicación web`, 'yellow');
+      log(`\n   💡 Si quieres iniciar el servidor (opcional):`, 'cyan');
+      log(`      1. En otra terminal: cd backEnd`, 'yellow');
+      log(`      2. Ejecuta: node app.js`, 'yellow');
+      log(`      3. Espera: "🚀 Servidor corriendo en puerto 3002"`, 'green');
+      log(`\n   ⏳ Continuando con la creación de datos en la base de datos...\n`, 'cyan');
+      // NO salir, continuar con el seed
+    } else {
+      log(`\n`);
     }
 
-    // Ejecutar seed
+    // Ejecutar seed (esto funciona sin el servidor HTTP)
     await crearDatosITSON();
 await limpiarAsistenciasHoraActual()
   } catch (error) {
